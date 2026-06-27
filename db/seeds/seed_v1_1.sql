@@ -1,15 +1,11 @@
 INSERT OR IGNORE INTO users (user_id, nickname, role, status)
 VALUES ('user_mom', 'Vi', 'learner', 'active');
 
-UPDATE users
-SET nickname = 'Vi'
-WHERE user_id = 'user_mom';
-
 INSERT OR IGNORE INTO users (user_id, nickname, role, status)
 VALUES ('user_admin_1', 'Admin_1', 'learner', 'active');
 
 UPDATE users
-SET nickname = 'Admin_1', role = 'learner', status = 'active'
+SET role = 'learner', status = 'active'
 WHERE user_id = 'user_admin_1';
 
 INSERT OR IGNORE INTO admin_users (admin_id, nickname, status)
@@ -43,7 +39,6 @@ INSERT OR IGNORE INTO local_login_accounts (
 UPDATE local_login_accounts
 SET user_id = 'user_admin_1',
     role = 'admin',
-    password_sha256 = '84d1f39e22ed5d1dda6a3d87029f32a6671f6d40b33f3f3ab255c04fdbe8aa92',
     remember_enabled = 1,
     status = 'active'
 WHERE username = 'AdminXLY';
@@ -75,15 +70,6 @@ INSERT OR IGNORE INTO learning_profiles (
   '首位用户，先以低负担和稳定完成为目标。'
 );
 
-UPDATE learning_profiles
-SET
-  goal = '从零开始建立英语发音、音标、音节和基础拼读能力，再进入问候、自我介绍和银行常用表达。',
-  daily_minutes = 30,
-  scenario_preferences = '音标,音节,基础拼读,问候,自我介绍,银行接待,会议表达,日常购物',
-  visual_preferences = '舒适蓝绿主色、清爽、克制、接近 Apple 风格',
-  updated_at = CURRENT_TIMESTAMP
-WHERE user_id = 'user_mom';
-
 INSERT OR IGNORE INTO learning_profiles (
   user_id, age_band, occupation, english_foundation, goal, daily_minutes,
   interest_preferences, scenario_preferences, visual_preferences,
@@ -99,22 +85,6 @@ INSERT OR IGNORE INTO learning_profiles (
   'b2_c1',
   '测试管理员账号的学习者画像：25 岁，硕士研究生，雅思 7.0 水平。'
 );
-
-UPDATE learning_profiles
-SET
-  age_band = '25',
-  occupation = 'master_student',
-  english_foundation = 'ielts_7_0',
-  goal = '以雅思 7.0 为基础，继续提升学术表达、职场沟通、复杂阅读和高质量口语输出。',
-  daily_minutes = 30,
-  interest_preferences = '学术英语,职场表达,科技与商业话题,高效复盘',
-  scenario_preferences = '学术讨论,面试表达,会议表达,银行业务,跨文化沟通',
-  visual_preferences = '清爽、专业、低噪音、适合高阶学习者',
-  pronunciation_preference = 'american',
-  cefr_stage = 'b2_c1',
-  admin_note = '测试管理员账号的学习者画像：25 岁，硕士研究生，雅思 7.0 水平。',
-  updated_at = CURRENT_TIMESTAMP
-WHERE user_id = 'user_admin_1';
 
 INSERT OR IGNORE INTO learning_status (
   user_id, learning_days, current_stage, overall_level, streak_days,
@@ -133,14 +103,6 @@ INSERT OR IGNORE INTO learning_status (
   '尚未开始本系统内学习',
   '从高阶表达、复杂阅读和口语输出诊断开始。'
 );
-
-UPDATE learning_status
-SET current_stage = 'advanced',
-    overall_level = 'ielts_7_0',
-    weak_summary = '尚未开始本系统内学习',
-    next_suggestion = '从高阶表达、复杂阅读和口语输出诊断开始。',
-    updated_at = CURRENT_TIMESTAMP
-WHERE user_id = 'user_admin_1';
 
 INSERT OR IGNORE INTO curriculum_stages (stage_id, name, goal, pass_criteria, sort_order)
 VALUES

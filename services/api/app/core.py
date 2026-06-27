@@ -2673,6 +2673,11 @@ def update_account_display_name(session_token: str, display_name: str) -> dict[s
         raise ValueError("用户名不能超过 24 个字符")
     with connect() as conn:
         conn.execute("UPDATE users SET nickname = ? WHERE user_id = ?", (nickname, user_id))
+        if session.get("role") == "admin":
+            conn.execute(
+                "UPDATE admin_users SET nickname = ? WHERE admin_id = ?",
+                (nickname, session["login_account"]),
+            )
         log_debug(conn, "account", "info", "display name updated", {"user_id": user_id})
         conn.commit()
     return {

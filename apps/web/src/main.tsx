@@ -344,6 +344,7 @@ function App() {
             localStorage.setItem("momo_admin_session", JSON.stringify(nextSession));
             setAdminSession(nextSession);
           }
+          localStorage.setItem("momo_session", JSON.stringify(nextSession));
           setSession(nextSession);
           go("/learn");
         }}
@@ -358,6 +359,10 @@ function App() {
         const mergedSession = { ...session, ...nextSession };
         localStorage.setItem("momo_session", JSON.stringify(mergedSession));
         setSession(mergedSession);
+        if (mergedSession.role === "admin") {
+          localStorage.setItem("momo_admin_session", JSON.stringify(mergedSession));
+          setAdminSession(mergedSession);
+        }
       }}
       onLogout={() => {
         localStorage.removeItem("momo_session");
@@ -728,6 +733,13 @@ function LearnPage(props: { session: Session; onLogout: () => void; onSessionUpd
         const remembered = JSON.parse(rememberedRaw) as { login_account?: string; password?: string; remember?: boolean };
         if (remembered.login_account === props.session.login_account) {
           localStorage.setItem("momo_login_remember", JSON.stringify({ ...remembered, password: newPassword }));
+        }
+      }
+      const adminRememberedRaw = localStorage.getItem("momo_admin_remember");
+      if (adminRememberedRaw) {
+        const remembered = JSON.parse(adminRememberedRaw) as { login_account?: string; password?: string; remember?: boolean };
+        if (remembered.login_account === props.session.login_account && remembered.password) {
+          localStorage.setItem("momo_admin_remember", JSON.stringify({ ...remembered, password: newPassword }));
         }
       }
       setCurrentPassword("");
@@ -1572,7 +1584,7 @@ function LearnPage(props: { session: Session; onLogout: () => void; onSessionUpd
       {learnView === "profile" ? (
         <section className="profile-screen">
           <div className="profile-action-row">
-            <button className="top-text-button utility-button" type="button" onClick={() => {
+            <button data-testid="profile-settings" className="top-text-button utility-button" type="button" onClick={() => {
               setAccountNotice("");
               setLearnView("settings");
             }}>
@@ -1635,9 +1647,9 @@ function LearnPage(props: { session: Session; onLogout: () => void; onSessionUpd
             <h3>修改用户名</h3>
             <label className="mobile-field">
               新用户名
-              <MobileInput value={displayNameDraft} onChange={setDisplayNameDraft} />
+              <MobileInput data-testid="display-name-input" value={displayNameDraft} onChange={setDisplayNameDraft} />
             </label>
-            <MobileButton className="primary-action compact" block color="primary" loading={isSavingAccount} onClick={saveDisplayName}>
+            <MobileButton data-testid="save-display-name" className="primary-action compact" block color="primary" loading={isSavingAccount} onClick={saveDisplayName}>
               确定
             </MobileButton>
           </div>
@@ -1670,6 +1682,7 @@ function LearnPage(props: { session: Session; onLogout: () => void; onSessionUpd
           ["profile", "我的"]
         ].map(([key, label]) => (
           <button
+            data-testid={`tab-${key}`}
             className={learnView === key || (key === "home" && learnView === "lesson") ? "active" : ""}
             key={key}
             onClick={() => setLearnView(key as "home" | "map" | "profile")}

@@ -64,3 +64,29 @@ def test_published_lesson_can_be_completed_and_generate_next_draft(isolated_runt
     assert status["last_learning_date"] == lesson_date
     assert attempts["count"] == 1
     assert review["count"] == 1
+
+
+def test_admin_account_name_and_password_survive_init_db(isolated_runtime) -> None:
+    session = core.authenticate_local_account("AdminXLY", "Frank1229")
+    renamed = core.update_account_display_name(session["session_token"], "Admin_Test_Name")
+    assert renamed["nickname"] == "Admin_Test_Name"
+
+    core.update_account_password(session["session_token"], "Frank1229", "Frank1229New")
+    core.init_db()
+
+    with core.connect() as conn:
+        user = conn.execute("SELECT nickname FROM users WHERE user_id = ?", ("user_admin_1",)).fetchone()
+        admin = conn.execute("SELECT nickname FROM admin_users WHERE admin_id = ?", ("AdminXLY",)).fetchone()
+
+    assert user["nickname"] == "Admin_Test_Name"
+    assert admin["nickname"] == "Admin_Test_Name"
+
+    new_session = core.authenticate_local_account("AdminXLY", "Frank1229New")
+    assert new_session["nickname"] == "Admin_Test_Name"
+
+    try:
+        core.authenticate_local_account("AdminXLY", "Frank1229")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("old password should not work after password update")

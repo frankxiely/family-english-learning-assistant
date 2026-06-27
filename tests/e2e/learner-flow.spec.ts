@@ -57,3 +57,39 @@ test("mobile learner can complete today's lesson", async ({ page, request }) => 
   await page.getByTestId("celebration-continue").click();
   await expect(page.getByText("学习档案")).toBeVisible();
 });
+
+test("account display name persists after refresh", async ({ page, request }) => {
+  const restoreDisplayName = async () => {
+    const login = await request.post("http://127.0.0.1:8000/api/auth/login", {
+      data: { login_account: "AdminXLY", password: "Frank1229", remember: true },
+    });
+    if (!login.ok()) return;
+    const body = await login.json();
+    const token = body.session?.session_token;
+    if (!token) return;
+    await request.put("http://127.0.0.1:8000/api/account/display-name", {
+      headers: { Authorization: `Bearer ${token}` },
+      data: { username: "Admin_1" },
+    });
+  };
+
+  try {
+    await page.goto("/login");
+    await page.getByTestId("learner-login-account").fill("AdminXLY");
+    await page.getByTestId("learner-login-password").fill("Frank1229");
+    await page.getByTestId("learner-login-submit").click();
+
+    await page.getByTestId("tab-profile").click();
+    await expect(page.getByText("学习档案")).toBeVisible();
+    await page.getByTestId("profile-settings").click();
+    await page.getByTestId("display-name-input").fill("Admin_E2E");
+    await page.getByTestId("save-display-name").click();
+    await expect(page.getByText("用户名已更新。")).toBeVisible();
+
+    await page.reload();
+    await page.getByTestId("tab-profile").click();
+    await expect(page.getByRole("heading", { name: "Admin_E2E" })).toBeVisible();
+  } finally {
+    await restoreDisplayName();
+  }
+});
