@@ -1,0 +1,123 @@
+{
+  "schema_version": "user_learning_route.v1",
+  "route_id": "route_vi_starter_phonics_v1",
+  "user_id": "user_mom",
+  "display_name": "Vi",
+  "updated_at": "2026-06-28",
+  "route_source": "admin_manual_v1_1",
+  "profile_basis": {
+    "age_band": "middle_age",
+    "occupation": "bank_leader",
+    "english_foundation": "near_zero",
+    "daily_minutes": 30,
+    "tone": "adult, calm, encouraging"
+  },
+  "stage": {
+    "stage_id": "vi_stage_0_phonics_starter",
+    "name": "音标和基础拼读入门",
+    "target_days": 14,
+    "stage_encouragement": "每天一点点，先把音标和基础拼读打稳。",
+    "goal": "建立英语声音、音节和基础拼读意识，再进入问候、自我介绍和银行常用表达。"
+  },
+  "daily_constraints": {
+    "target_minutes": 30,
+    "new_word_limit": 4,
+    "knowledge_point_limit": 1,
+    "quiz_count": {
+      "min": 3,
+      "max": 5
+    }
+  },
+  "route_items": [
+    {
+      "route_item_id": "vi_phonics_001",
+      "day_number": 1,
+      "theme": "音标第一课：/iː/ 和 /ɪ/",
+      "route_module_label": "音标和音节入门",
+      "main_knowledge_label": "/iː/ 和 /ɪ/",
+      "passage_module_label": "课堂跟读对话",
+      "level_code": "入门",
+      "target_minutes": 30,
+      "difficulty": "starter",
+      "knowledge_id": "kp_phonics_intro",
+      "teaching_knowledge_id": "kb_phonics_001_i_long_i_short",
+      "phonics_focus": ["/iː/", "/ɪ/"],
+      "new_words": ["see", "sit", "seat", "it"],
+      "vocabulary": [
+        {"word": "see", "phonetic": "/siː/", "part_of_speech": "verb", "part_of_speech_zh": "动词", "meaning": "看见", "needs_image": true},
+        {"word": "sit", "phonetic": "/sɪt/", "part_of_speech": "verb", "part_of_speech_zh": "动词", "meaning": "坐", "needs_image": true},
+        {"word": "seat", "phonetic": "/siːt/", "part_of_speech": "noun", "part_of_speech_zh": "名词", "meaning": "座位", "needs_image": true},
+        {"word": "it", "phonetic": "/ɪt/", "part_of_speech": "pronoun", "part_of_speech_zh": "代词", "meaning": "它", "needs_image": false}
+      ],
+      "objectives": [
+        "能听出 /iː/ 和 /ɪ/ 的长短区别",
+        "能读出 see、sit、seat、it",
+        "能跟读 I see it. 和 Sit on the seat.",
+        "完成 3 道基础测试题"
+      ],
+      "preview": "今天只学一组声音：/iː/ 拉长，/ɪ/ 短促。先听清，再读顺。",
+      "knowledge_title": "音标第一课：/iː/ 和 /ɪ/",
+      "knowledge_cards": [
+        "1. /iː/ 是长音，嘴角向两边拉，声音要拉长，例如 see 和 seat。",
+        "2. /ɪ/ 是短音，嘴巴更放松，声音短促，例如 sit 和 it。",
+        "3. 音节里通常有一个核心元音。今天先找出单词里的核心声音。",
+        "4. 读 seat 时要听到长音 /iː/，读 sit 时不要拖长。"
+      ],
+      "passage": {
+        "title": "Sit on the seat",
+        "passage_type": "dialogue",
+        "lines": [
+          {"role": "Teacher", "text": "I see it.", "translation": "我看见它。"},
+          {"role": "Vi", "text": "I see it.", "translation": "我看见它。"},
+          {"role": "Teacher", "text": "Sit on the seat.", "translation": "坐在座位上。"},
+          {"role": "Vi", "text": "Sit on the seat.", "translation": "坐在座位上。"}
+        ],
+        "difficult_words": [
+          {"word": "on", "meaning": "在……上"},
+          {"word": "the", "meaning": "这个；那个"}
+        ]
+      },
+      "quiz_questions": [
+        {
+          "question_id": "vi_phonics_001_q1",
+          "prompt": "今天主要练习哪一组声音？",
+          "options": ["/iː/ 和 /ɪ/", "/p/ 和 /b/", "长篇阅读"],
+          "answer": "/iː/ 和 /ɪ/",
+          "explanation": "今天只集中听辨 /iː/ 和 /ɪ/。",
+          "error_tag": "phonics_focus"
+        },
+        {
+          "question_id": "vi_phonics_001_q2",
+          "prompt": "see 的核心意思是？",
+          "options": ["看见", "座位", "今天"],
+          "answer": "看见",
+          "explanation": "see 是动词，今天只记“看见”。",
+          "related_word_ids": ["word_see"],
+          "error_tag": "word_meaning"
+        },
+        {
+          "question_id": "vi_phonics_001_q3",
+          "prompt": "/iː/ 后面的 ː 表示什么？",
+          "options": ["声音要拉长", "声音要变轻", "这是中文拼音"],
+          "answer": "声音要拉长",
+          "explanation": "/iː/ 是长音，读的时候要比 /ɪ/ 更长。",
+          "error_tag": "long_vowel_mark"
+        }
+      ],
+      "source_basis": ["src_cefr_official", "src_cambridge_pre_a1", "src_oxford_3000_5000"]
+    },
+    {"route_item_id": "vi_phonics_002", "day_number": 2, "theme": "短元音听辨：/e/ 和 /æ/", "route_module_label": "短元音听辨", "main_knowledge_label": "/e/ 和 /æ/", "passage_module_label": "桌面物品对话", "level_code": "入门", "target_minutes": 30, "phonics_focus": ["/e/", "/æ/"], "new_words": ["pen", "bed", "bag", "map"], "sentence_patterns": ["I see a pen.", "It is a bag."], "source_basis": ["src_cambridge_pre_a1", "src_oxford_3000_5000"]},
+    {"route_item_id": "vi_phonics_003", "day_number": 3, "theme": "元音开口练习：/ɑː/ 和 /ʌ/", "route_module_label": "元音开口练习", "main_knowledge_label": "/ɑː/ 和 /ʌ/", "passage_module_label": "家庭物品对话", "level_code": "入门", "target_minutes": 30, "phonics_focus": ["/ɑː/", "/ʌ/"], "new_words": ["car", "cup", "arm", "sun"], "sentence_patterns": ["I see a cup.", "The car is here."], "source_basis": ["src_cambridge_pre_a1", "src_oxford_3000_5000"]},
+    {"route_item_id": "vi_phonics_004", "day_number": 4, "theme": "圆唇元音练习：/uː/ 和 /ʊ/", "route_module_label": "圆唇元音练习", "main_knowledge_label": "/uː/ 和 /ʊ/", "passage_module_label": "食物和书本对话", "level_code": "入门", "target_minutes": 30, "phonics_focus": ["/uː/", "/ʊ/"], "new_words": ["food", "book", "good", "look"], "sentence_patterns": ["Look at the book.", "The food is good."], "source_basis": ["src_cambridge_pre_a1", "src_oxford_3000_5000"]},
+    {"route_item_id": "vi_phonics_005", "day_number": 5, "theme": "双元音入门：/eɪ/ 和 /aɪ/", "route_module_label": "双元音入门", "main_knowledge_label": "/eɪ/ 和 /aɪ/", "passage_module_label": "自我介绍对话", "level_code": "入门", "target_minutes": 30, "phonics_focus": ["/eɪ/", "/aɪ/"], "new_words": ["day", "name", "I", "like"], "sentence_patterns": ["I am Vi.", "I like it."], "source_basis": ["src_british_council_learnenglish", "src_oxford_3000_5000"]},
+    {"route_item_id": "vi_phonics_006", "day_number": 6, "theme": "辅音爆破音入门：/p/ 和 /b/", "route_module_label": "辅音爆破音入门", "main_knowledge_label": "/p/ 和 /b/", "passage_module_label": "银行物品对话", "level_code": "入门", "target_minutes": 30, "phonics_focus": ["/p/", "/b/"], "new_words": ["pen", "bank", "bag", "please"], "sentence_patterns": ["Please sit.", "This is a bank."], "source_basis": ["src_british_council_learnenglish", "src_oxford_3000_5000"]},
+    {"route_item_id": "vi_phonics_007", "day_number": 7, "theme": "首周复习：长短元音和简单音节", "route_module_label": "首周复习", "main_knowledge_label": "长短元音和简单音节", "passage_module_label": "复习对话", "level_code": "入门", "target_minutes": 30, "review_words": ["see", "sit", "seat", "pen", "bag", "book"], "sentence_patterns": ["I see it.", "Look at the book.", "It is a bag."], "source_basis": ["src_cefr_official", "src_cambridge_pre_a1"]},
+    {"route_item_id": "vi_phonics_008", "day_number": 8, "theme": "辅音舌尖音入门：/t/ 和 /d/", "route_module_label": "辅音舌尖音入门", "main_knowledge_label": "/t/ 和 /d/", "passage_module_label": "日常问候对话", "level_code": "入门", "target_minutes": 30, "phonics_focus": ["/t/", "/d/"], "new_words": ["today", "tea", "day", "desk"], "sentence_patterns": ["Good day.", "Tea is on the desk."], "source_basis": ["src_british_council_learnenglish", "src_oxford_3000_5000"]},
+    {"route_item_id": "vi_phonics_009", "day_number": 9, "theme": "辅音摩擦音入门：/s/ 和 /z/", "route_module_label": "辅音摩擦音入门", "main_knowledge_label": "/s/ 和 /z/", "passage_module_label": "服务表达对话", "level_code": "入门", "target_minutes": 30, "phonics_focus": ["/s/", "/z/"], "new_words": ["see", "is", "please", "zero"], "sentence_patterns": ["Please see this.", "It is zero."], "source_basis": ["src_british_council_learnenglish", "src_oxford_3000_5000"]},
+    {"route_item_id": "vi_phonics_010", "day_number": 10, "theme": "音节拼读入门：CVC 和 CV", "route_module_label": "音节拼读入门", "main_knowledge_label": "CVC 和 CV 音节", "passage_module_label": "拼读复习对话", "level_code": "入门", "target_minutes": 30, "phonics_focus": ["CVC", "CV"], "new_words": ["me", "sit", "pen", "cup"], "sentence_patterns": ["Read it.", "I can read it."], "source_basis": ["src_cefr_official", "src_cambridge_pre_a1"]},
+    {"route_item_id": "vi_daily_011", "day_number": 11, "theme": "日常问候第一课", "route_module_label": "基础问候", "main_knowledge_label": "Hello. Nice to meet you.", "passage_module_label": "见面问候对话", "level_code": "入门", "target_minutes": 30, "new_words": ["hello", "nice", "meet"], "sentence_patterns": ["Hello.", "Nice to meet you."], "source_basis": ["src_british_council_learnenglish", "src_cambridge_pre_a1"]},
+    {"route_item_id": "vi_daily_012", "day_number": 12, "theme": "自我介绍第一课", "route_module_label": "自我介绍", "main_knowledge_label": "I am ...", "passage_module_label": "身份介绍对话", "level_code": "入门", "target_minutes": 30, "new_words": ["I", "am", "banker"], "sentence_patterns": ["I am Vi.", "I am a banker."], "source_basis": ["src_british_council_learnenglish", "src_cambridge_pre_a1"]},
+    {"route_item_id": "vi_bank_013", "day_number": 13, "theme": "银行接待第一课", "route_module_label": "银行接待", "main_knowledge_label": "Welcome. How can I help?", "passage_module_label": "银行接待对话", "level_code": "入门", "target_minutes": 30, "new_words": ["welcome", "bank", "help"], "sentence_patterns": ["Welcome to the bank.", "How can I help?"], "source_basis": ["src_british_council_learnenglish", "src_cambridge_pre_a1"]},
+    {"route_item_id": "vi_review_014", "day_number": 14, "theme": "两周复习和小测", "route_module_label": "阶段复习", "main_knowledge_label": "音标、问候、自我介绍", "passage_module_label": "综合复习对话", "level_code": "入门", "target_minutes": 30, "review_words": ["see", "sit", "hello", "bank", "help"], "sentence_patterns": ["I see it.", "Hello. I am Vi.", "How can I help?"], "source_basis": ["src_cefr_official", "src_cambridge_pre_a1"]}
+  ]
+}

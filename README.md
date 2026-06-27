@@ -56,6 +56,7 @@ npm run dev
 - 学习端不是一页拉到底网页，而是首页、学习进度、逐步学习、我的四个交互视图。
 - 学习端字体面向手机阅读放大：正文、英文课文、中文词义、按钮和小标签分别使用不同字号层级。
 - 长期课程路线图规定每天主题；每日 lesson JSON 负责填充当天学习内容。
+- 后端优先读取 `data/teaching_knowledge/user_routes/` 下的用户级路线图；没有用户级路线时，回退到全局 starter route。
 - 首页鼓励语来自 lesson JSON，分英文和中文两行，不再写死机械进度文案。
 - 首页展示今日任务数量，进度页可点开已完成、今日和未来课程查看不同信息。
 - 首页和进度页的主按钮会按状态显示“开始今天的学习 / 继续今天的学习 / 复习今天的学习”，学习播放器返回主页后会记住当前步骤。
@@ -65,7 +66,7 @@ npm run dev
 - 学习播放器底部用“上一模块 / 下一模块”切换主模块；课文原文/译文和知识讲解分页只翻当前卡片，并支持上一页/下一页。
 - 学习端建立按钮交互体系：主行动按钮有下沉回弹，模块导航体现前后方向，单词选择、测试选项、播放按钮、原文/译文切换和工具按钮使用不同反馈层级。
 - 课文是一个主模块，内部包含原文和译文两个按钮；原文页保留角色头像、逐句喇叭播放、今日词高亮和难词弹窗，译文页展示难词词义和整篇译文。
-- lesson JSON 生成会读取 `data/teaching_knowledge/starter_phonics_route.v1.json` 的内容路线，并写入 `route_basis`、`progress_summary`、`source_basis` 和 `audio_assets`。
+- lesson JSON 生成会读取用户级路线或 `data/teaching_knowledge/starter_phonics_route.v1.json` 的内容路线，并写入 `route_basis`、`progress_summary`、`source_basis` 和 `audio_assets`。
 - 测试答对会自动进入下一题，答错会停留、标红、显示解析，并把错题随学习提交写入后端。
 - 学习完成后先展示奖杯完成页，再进入“我的”。
 - 我的页面用左上角设置按钮进入独立账号设置页，设置页提供返回和确定；我的页统计改为累计完成测试题、学习天数、完成模块和当前模块。
@@ -140,7 +141,7 @@ scripts/debug_modules.sh
 - `db/seeds/`：测试/demo seed 数据；真实本地初始化不默认执行。
 - `docs/content_knowledge_base/`：内容知识库说明、资料来源、路线设计、lesson JSON 写作规则和音频策略。
 - `data/sqlite/`：本地 SQLite 数据库。
-- `data/teaching_knowledge/`：可机器读取的资料来源目录和课程路线图草稿。
+- `data/teaching_knowledge/`：可机器读取的资料来源目录、全局课程路线和用户级课程路线。
 - `data/lesson_json/`：raw / normalized / validated lesson JSON 文件。
 - `data/logs/`：API、内容生成、前端日志。
 - `tests/`：后端 pytest 和前端 Playwright E2E 测试。

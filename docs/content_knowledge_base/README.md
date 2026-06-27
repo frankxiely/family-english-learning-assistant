@@ -36,3 +36,4 @@
 - `audio_strategy_v1.md`：自然音频和课文朗读方案。
 - `../../data/teaching_knowledge/source_catalog.v1.json`：资料来源的机器可读目录。
 - `../../data/teaching_knowledge/starter_phonics_route.v1.json`：零基础首阶段路线图初稿。
+- `../../data/teaching_knowledge/user_routes/`：用户级路线图；v1.1 已包含 Vi 的零基础路线和 Frank 的高阶商务输出路线。

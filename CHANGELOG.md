@@ -60,6 +60,9 @@
 - 新增内容知识库第一版：资料来源、使用边界、路线图设计、lesson JSON 写作规则和音频策略。
 - 新增机器可读知识库文件：`data/teaching_knowledge/source_catalog.v1.json` 和 `data/teaching_knowledge/starter_phonics_route.v1.json`，用于约束后续 lesson JSON 与长期路线图生成。
 - 后端 lesson 生成器接入 `starter_phonics_route.v1.json`，按学习天数选择内容路线项，并写入 `route_basis`、`progress_summary`、`source_basis` 和 `audio_assets`。
+- 新增用户级路线图 `data/teaching_knowledge/user_routes/vi_route.v1.json` 和 `frank_route.v1.json`；Vi 走零基础音标路线，Frank 走 B2-C1 高阶诊断与商务输出路线。
+- 后端 lesson 生成器和学习进度 API 优先读取用户级路线图，路线项可直接指定词汇、课文、知识卡、测试题和进度页摘要。
+- 为本地库发布 Vi 与 Frank 的 2026-06-28 第一课 lesson JSON：Vi 为“音标第一课：/iː/ 和 /ɪ/”，Frank 为“高阶诊断课：商务自我介绍与发音校准”。
 - 新增后端 pytest，覆盖内容知识库路线生成、lesson JSON 标准化、发布和学习提交。
 - 新增 Playwright 手机端 E2E，覆盖登录、今日学习、单词掌握、课文、知识讲解、测试、完成和进入“我的”页面。
 - 新增 `test:api` 和 `test:e2e` 脚本，并安装 `@playwright/test`。

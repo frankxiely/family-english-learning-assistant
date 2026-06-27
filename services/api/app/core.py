@@ -31,6 +31,11 @@ VALIDATED_DIR = ROOT / "data" / "lesson_json" / "validated"
 EXPORT_DIR = ROOT / "data" / "lesson_exports"
 TEACHING_KNOWLEDGE_DIR = ROOT / "data" / "teaching_knowledge"
 STARTER_PHONICS_ROUTE_PATH = TEACHING_KNOWLEDGE_DIR / "starter_phonics_route.v1.json"
+USER_ROUTE_DIR = TEACHING_KNOWLEDGE_DIR / "user_routes"
+USER_ROUTE_PATHS = {
+    "user_mom": USER_ROUTE_DIR / "vi_route.v1.json",
+    "user_admin_1": USER_ROUTE_DIR / "frank_route.v1.json",
+}
 WEB_PUBLIC_DIR = ROOT / "apps" / "web" / "public"
 WORD_IMAGE_DIR = WEB_PUBLIC_DIR / "generated" / "word_images"
 SESSION_TTL_HOURS = 12
@@ -176,8 +181,22 @@ def load_starter_phonics_route() -> dict[str, Any]:
     return data if isinstance(data, dict) else {}
 
 
+def load_user_learning_route(user_id: str | None) -> dict[str, Any]:
+    if not user_id:
+        return {}
+    path = USER_ROUTE_PATHS.get(user_id)
+    if not path:
+        return {}
+    data = load_json_file(path, {})
+    return data if isinstance(data, dict) else {}
+
+
+def route_data_for_user(user_id: str | None) -> dict[str, Any]:
+    return load_user_learning_route(user_id) or load_starter_phonics_route()
+
+
 def pick_content_route_item(context: dict[str, Any]) -> dict[str, Any]:
-    route_data = load_starter_phonics_route()
+    route_data = route_data_for_user(context.get("user_id"))
     route_items = route_data.get("route_items") or []
     if not route_items:
         return {}
@@ -191,6 +210,7 @@ def pick_content_route_item(context: dict[str, Any]) -> dict[str, Any]:
     item["daily_constraints"] = route_data.get("daily_constraints") or {}
     item["stage"] = route_data.get("stage") or {}
     item["route_schema_version"] = route_data.get("schema_version")
+    item["route_user_id"] = route_data.get("user_id")
     return item
 
 
@@ -212,6 +232,34 @@ def build_vocabulary_item(word: str, phonics_focus: list[str]) -> dict[str, Any]
         "image_hint": f"simple clear illustration of {word}" if needs_image else None,
         "audio_text": word,
     }
+
+
+def build_route_vocabulary(content_route_item: dict[str, Any], phonics_focus: list[str]) -> list[dict[str, Any]]:
+    vocabulary_items = content_route_item.get("vocabulary") or []
+    if vocabulary_items:
+        result = []
+        for source in vocabulary_items:
+            if isinstance(source, str):
+                result.append(build_vocabulary_item(source, phonics_focus))
+                continue
+            word = str(source.get("word") or "").strip()
+            if not word:
+                continue
+            base = build_vocabulary_item(word, phonics_focus)
+            merged = {**base, **source}
+            merged["audio_text"] = merged.get("audio_text") or merged["word"]
+            if "cefr_level" not in source:
+                merged["cefr_level"] = content_route_item.get("cefr_level") or content_route_item.get("level_code") or base["cefr_level"]
+            if "is_phonics_word" not in source:
+                merged["is_phonics_word"] = bool(phonics_focus)
+            merged["needs_image"] = bool(merged.get("needs_image", base["needs_image"]))
+            if merged.get("needs_image") and not merged.get("image_hint"):
+                merged["image_hint"] = f"simple clear illustration of {merged['word']}"
+            result.append(merged)
+        return result
+    new_words = [str(item) for item in content_route_item.get("new_words") or []]
+    review_words = [str(item) for item in content_route_item.get("review_words") or []]
+    return [build_vocabulary_item(word, phonics_focus) for word in (new_words or review_words[:4])]
 
 
 def build_audio_asset(
@@ -242,6 +290,43 @@ def build_audio_asset(
 
 
 def build_kb_passage(content_route_item: dict[str, Any], vocabulary: list[dict[str, Any]]) -> dict[str, Any]:
+    provided_passage = content_route_item.get("passage")
+    if isinstance(provided_passage, dict):
+        passage = dict(provided_passage)
+        lines = [dict(line) for line in passage.get("lines") or []]
+        words = {item["word"].lower() for item in vocabulary}
+        for line in lines:
+            text = str(line.get("text") or "")
+            line["audio_text"] = line.get("audio_text") or text
+            line["highlight_words"] = line.get("highlight_words") or [
+                word for word in words if re.search(rf"\b{re.escape(word)}\b", text, re.I)
+            ]
+            line["audio_ref"] = line.get("audio_ref") or build_audio_asset(
+                "passage_line",
+                f"{line.get('role')}_{text}",
+                text,
+                role=line.get("role"),
+            )["audio_id"]
+        passage["lines"] = lines
+        passage["passage_type"] = passage.get("passage_type") or "dialogue"
+        passage["english_text"] = passage.get("english_text") or "\n".join(
+            f"{line.get('role')}: {line.get('text')}" for line in lines
+        )
+        passage["chinese_support"] = passage.get("chinese_support") or "\n".join(
+            f"{line.get('role')}：{line.get('translation')}" for line in lines if line.get("translation")
+        )
+        passage["translation"] = passage.get("translation") or "\n".join(
+            str(line.get("translation") or "") for line in lines
+        )
+        passage["difficult_words"] = passage.get("difficult_words") or []
+        passage["audio_plan"] = passage.get("audio_plan") or {
+            "normal_rate": 0.88,
+            "slow_rate": 0.68,
+            "provider": "web_speech_runtime",
+            "fallback": True,
+        }
+        return passage
+
     sentence_patterns = content_route_item.get("sentence_patterns") or ["I see it.", "Read it."]
     first = str(sentence_patterns[0])
     second = str(sentence_patterns[1] if len(sentence_patterns) > 1 else sentence_patterns[0])
@@ -299,23 +384,47 @@ def build_kb_audio_assets(template: dict[str, Any]) -> list[dict[str, Any]]:
 
 def build_kb_route_template(content_route_item: dict[str, Any], review_text: str) -> dict[str, Any]:
     phonics_focus = [str(item) for item in content_route_item.get("phonics_focus") or []]
-    new_words = [str(item) for item in content_route_item.get("new_words") or []]
     review_words = [str(item) for item in content_route_item.get("review_words") or []]
-    vocabulary = [build_vocabulary_item(word, phonics_focus) for word in (new_words or review_words[:4])]
+    vocabulary = build_route_vocabulary(content_route_item, phonics_focus)
     focus_text = " 和 ".join(phonics_focus) if phonics_focus else str(content_route_item.get("main_knowledge_label") or "今日知识点")
     route_label = str(content_route_item.get("route_module_label") or "音标和基础拼读")
     passage_label = str(content_route_item.get("passage_module_label") or "今日对话")
     passage = build_kb_passage(content_route_item, vocabulary)
-    content_lines = [
-        f"1. 今天的主题是 {focus_text}，先听清声音，再跟读单词。",
-        "2. 音节里通常有一个核心元音，拼读时先找到这个核心声音。",
-        f"3. 今天的词是 {', '.join(item['word'] for item in vocabulary) or '复习词'}，只记一个核心意思。",
-        f"4. 最后把这些词放进“{passage_label}”里读出来。",
-    ]
+    if phonics_focus:
+        focus_section_content = f"{focus_text} 是今天的主知识点。先听差别，再读单词。"
+        default_content_lines = [
+            f"1. 今天的主题是 {focus_text}，先听清声音，再跟读单词。",
+            "2. 音节里通常有一个核心元音，拼读时先找到这个核心声音。",
+            f"3. 今天的词是 {', '.join(item['word'] for item in vocabulary) or '复习词'}，只记一个核心意思。",
+            f"4. 最后把这些词放进“{passage_label}”里读出来。",
+        ]
+    else:
+        focus_section_content = f"{focus_text} 是今天的主知识点。先看表达结构，再做短句输出。"
+        default_content_lines = [
+            f"1. 今天的主题是 {focus_text}，先明确场景、对象和沟通目的。",
+            "2. 高质量表达优先做到清楚、简洁、有重点，不靠堆叠长句。",
+            f"3. 今天的词是 {', '.join(item['word'] for item in vocabulary) or '复习词'}，每个先记一个核心用法。",
+            f"4. 最后把这些表达放进“{passage_label}”里读出来。",
+        ]
     if review_words:
-        content_lines.append(f"5. 今天主要复习 {', '.join(review_words[:4])}，不增加太多新负担。")
+        default_content_lines.append(f"5. 今天主要复习 {', '.join(review_words[:4])}，不增加太多新负担。")
+    content_lines = [str(line) for line in content_route_item.get("knowledge_cards") or default_content_lines]
     quiz_words = vocabulary[:3] or [build_vocabulary_item("see", phonics_focus)]
+    provided_questions = content_route_item.get("quiz_questions") or []
     questions = [
+        {
+            "question_id": str(question.get("question_id") or f"{content_route_item.get('route_item_id')}_q{index}"),
+            "prompt": str(question.get("prompt") or ""),
+            "options": [str(option) for option in question.get("options") or []],
+            "answer": str(question.get("answer") or ""),
+            "explanation": str(question.get("explanation") or ""),
+            "related_knowledge_id": question.get("related_knowledge_id") or content_route_item.get("knowledge_id"),
+            "related_word_ids": question.get("related_word_ids") or [],
+            "error_tag": question.get("error_tag") or "route_quiz",
+        }
+        for index, question in enumerate(provided_questions, start=1)
+        if isinstance(question, dict)
+    ] or [
         {
             "question_id": f"{content_route_item.get('route_item_id')}_q1",
             "prompt": "今天主要练习的是？",
@@ -338,34 +447,39 @@ def build_kb_route_template(content_route_item: dict[str, Any], review_text: str
         },
         {
             "question_id": f"{content_route_item.get('route_item_id')}_q3",
-            "prompt": "一个音节里通常最核心的声音是？",
-            "options": ["元音", "标点", "中文意思"],
-            "answer": "元音",
-            "explanation": "先记住：元音通常是一个音节的中心。",
+            "prompt": "今天表达练习最应该优先做到什么？" if not phonics_focus else "一个音节里通常最核心的声音是？",
+            "options": ["清楚、简洁、有重点", "句子越长越好", "尽量使用生僻词"] if not phonics_focus else ["元音", "标点", "中文意思"],
+            "answer": "清楚、简洁、有重点" if not phonics_focus else "元音",
+            "explanation": "高质量表达先追求结构清楚，再追求自然。" if not phonics_focus else "先记住：元音通常是一个音节的中心。",
             "related_knowledge_id": content_route_item.get("knowledge_id"),
             "related_word_ids": [],
-            "error_tag": "syllable_awareness",
+            "error_tag": "output_clarity" if not phonics_focus else "syllable_awareness",
         },
     ]
+    objectives = [str(item) for item in content_route_item.get("objectives") or []] or [
+        f"认识 {focus_text} 的声音特点",
+        f"能读出 {', '.join(item['word'] for item in vocabulary) or '复习词'}",
+        f"能完成“{passage_label}”短对话跟读",
+        f"完成 {len(questions)} 道测试题",
+    ]
+    theme = str(content_route_item.get("theme") or f"{route_label}：{focus_text}")
     return {
-        "theme": f"{route_label}：{focus_text}",
-        "human_readable_text": f"今天用 30 分钟学习 {route_label}，重点是 {focus_text}。{review_text}",
-        "objectives": [
-            f"认识 {focus_text} 的声音特点",
-            f"能读出 {', '.join(item['word'] for item in vocabulary) or '复习词'}",
-            f"能完成“{passage_label}”短对话跟读",
-            f"完成 {len(questions)} 道测试题",
-        ],
+        "theme": theme,
+        "human_readable_text": str(
+            content_route_item.get("human_readable_text")
+            or f"今天用 30 分钟学习 {route_label}，重点是 {focus_text}。{review_text}"
+        ),
+        "objectives": objectives,
         "sections": [
-            {"type": "preview", "title": "今日目标", "content": f"今天只集中练习 {focus_text}，先听清，再读顺。"},
-            {"type": "phonics", "title": route_label, "content": f"{focus_text} 是今天的主知识点。先听差别，再读单词。"},
+            {"type": "preview", "title": "今日目标", "content": str(content_route_item.get("preview") or f"今天只集中练习 {focus_text}，先听清，再读顺。")},
+            {"type": "phonics" if phonics_focus else "language_focus", "title": route_label, "content": focus_section_content},
             {"type": "system_knowledge", "title": "知识讲解", "content": "\n".join(content_lines)},
             {"type": "summary_prompt", "title": "今日总结", "content": f"完成后回忆：今天的重点是不是 {focus_text}？"},
         ],
         "vocabulary": vocabulary,
         "passage": passage,
         "knowledge_note": {
-            "title": f"{route_label}：{focus_text}",
+            "title": str(content_route_item.get("knowledge_title") or theme),
             "content": "\n".join(content_lines),
         },
         "quiz": {"title": "今日小测试", "questions": questions},
@@ -507,6 +621,7 @@ def build_route_progress_summary(route_item: dict[str, Any]) -> dict[str, str]:
     source_text = " ".join(
         str(route_item.get(key) or "")
         for key in (
+            "main_knowledge_label",
             "scenario_goal",
             "vocabulary_scope",
             "sentence_scope",
@@ -515,22 +630,25 @@ def build_route_progress_summary(route_item: dict[str, Any]) -> dict[str, str]:
             "knowledge_name",
         )
     )
-    match = re.search(r"/[^/]+/\s*和\s*/[^/]+/", source_text)
-    if match:
-        knowledge_label = match.group(0)
-    elif route_item.get("sentence_scope") and "音标" not in str(route_item.get("sentence_scope")):
-        knowledge_label = str(route_item["sentence_scope"])
-    elif route_item.get("vocabulary_scope"):
-        words = [
-            item.strip()
-            for item in str(route_item["vocabulary_scope"]).split(",")
-            if item.strip()
-        ]
-        knowledge_label = " / ".join(words[:3]) if words else route_label
+    if route_item.get("main_knowledge_label"):
+        knowledge_label = str(route_item["main_knowledge_label"])
     else:
-        knowledge_label = str(route_item.get("objective") or route_label)
+        match = re.search(r"/[^/]+/\s*和\s*/[^/]+/", source_text)
+        if match:
+            knowledge_label = match.group(0)
+        elif route_item.get("sentence_scope") and "音标" not in str(route_item.get("sentence_scope")):
+            knowledge_label = str(route_item["sentence_scope"])
+        elif route_item.get("vocabulary_scope"):
+            words = [
+                item.strip()
+                for item in str(route_item["vocabulary_scope"]).split(",")
+                if item.strip()
+            ]
+            knowledge_label = " / ".join(words[:3]) if words else route_label
+        else:
+            knowledge_label = str(route_item.get("objective") or route_label)
 
-    scenario_name = str(route_item.get("scenario_name") or "")
+    scenario_name = str(route_item.get("passage_module_label") or route_item.get("scenario_name") or "")
     if scenario_name == "音标拼读":
         passage_label = "日常对话"
     else:
@@ -691,6 +809,7 @@ def build_generation_context(conn: sqlite3.Connection, user_id: str) -> dict[str
         route_item_for_context.get("knowledge_id"),
     )
     return {
+        "user_id": user_id,
         "profile": profile,
         "status": status,
         "route": route,
@@ -1263,6 +1382,15 @@ def build_template_plan(
         "home_encouragement": build_home_encouragement(lesson_date),
     }
     audio_assets = build_kb_audio_assets(template)
+    estimated_minutes = (
+        content_route_item.get("target_minutes")
+        or (context.get("profile") or {}).get("daily_minutes")
+        or route_item.get("target_minutes")
+        or 30
+    )
+    route_module_label = content_route_item.get("route_module_label") or route_item.get("knowledge_name")
+    main_knowledge_label = content_route_item.get("main_knowledge_label")
+    passage_module_label = content_route_item.get("passage_module_label")
     plan = {
         "schema_version": "lesson_plan_json.v1",
         "user_id": user_id,
@@ -1271,22 +1399,24 @@ def build_template_plan(
         "admin_note": admin["admin_note"],
         "admin_instruction": admin["admin_instruction"],
         "admin_revision_note": admin["admin_revision_note"],
-        "difficulty": "starter",
-        "estimated_minutes": (context.get("profile") or {}).get("daily_minutes") or route_item.get("target_minutes") or 30,
+        "difficulty": content_route_item.get("difficulty") or "starter",
+        "estimated_minutes": estimated_minutes,
         "route_basis": {
             "current_stage": (context.get("status") or {}).get("current_stage"),
             "route_item_id": route_item.get("route_item_id"),
             "knowledge_id": route_item.get("knowledge_id"),
-            "knowledge_name": route_item.get("knowledge_name"),
+            "knowledge_name": route_module_label,
             "scenario_level_id": route_item.get("scenario_level_id"),
             "scenario_id": route_item.get("scenario_id"),
-            "scenario_name": route_item.get("scenario_name"),
-            "level_code": route_item.get("level_code"),
+            "scenario_name": passage_module_label or route_item.get("scenario_name"),
+            "level_code": content_route_item.get("level_code") or route_item.get("level_code"),
             "review_items": review_words[:3],
             "teaching_knowledge_id": template.get("teaching_knowledge_id"),
             "content_route_item_id": content_route_item.get("route_item_id"),
             "content_route_day": content_route_item.get("day_number"),
             "content_route_schema_version": content_route_item.get("route_schema_version"),
+            "main_knowledge_label": main_knowledge_label,
+            "passage_module_label": passage_module_label,
             "source_basis": content_route_item.get("source_basis") or [],
         },
         "asset_requirements": [
@@ -1297,7 +1427,7 @@ def build_template_plan(
         "audio_assets": audio_assets,
         **template,
     }
-    plan["progress_summary"] = build_progress_summary(
+    plan["progress_summary"] = template.get("progress_summary") or build_progress_summary(
         {
             **plan,
             "route_basis": plan["route_basis"],
@@ -2430,38 +2560,6 @@ def get_learning_overview(user_id: str = "user_mom") -> dict[str, Any]:
 def get_learning_route_map(user_id: str = "user_mom") -> dict[str, Any]:
     init_db()
     with connect() as conn:
-        items = rows_to_dicts(
-            conn.execute(
-                """
-                SELECT
-                  cri.route_item_id,
-                  cri.recommended_order,
-                  cri.target_minutes,
-                  cri.objective,
-                  kp.name AS knowledge_name,
-                  kp.category AS knowledge_category,
-                  kp.description AS knowledge_description,
-                  sm.name AS scenario_name,
-                  sl.level_code,
-                  sl.goal AS scenario_goal,
-                  sl.vocabulary_scope,
-                  sl.sentence_scope,
-                  COALESCE(ukp.status, 'not_started') AS knowledge_status,
-                  COALESCE(ukp.mastery_score, 0) AS mastery_score,
-                  COALESCE(usp.status, 'not_started') AS scenario_status
-                FROM curriculum_route_items cri
-                LEFT JOIN knowledge_points kp ON kp.knowledge_id = cri.knowledge_id
-                LEFT JOIN scenario_levels sl ON sl.scenario_level_id = cri.scenario_level_id
-                LEFT JOIN scenario_modules sm ON sm.scenario_id = sl.scenario_id
-                LEFT JOIN user_knowledge_progress ukp
-                  ON ukp.user_id = ? AND ukp.knowledge_id = cri.knowledge_id
-                LEFT JOIN user_scenario_progress usp
-                  ON usp.user_id = ? AND usp.scenario_id = sm.scenario_id
-                ORDER BY cri.recommended_order
-                """,
-                (user_id, user_id),
-            ).fetchall()
-        )
         status = row_to_dict(
             conn.execute("SELECT * FROM learning_status WHERE user_id = ?", (user_id,)).fetchone()
         ) or {}
@@ -2476,14 +2574,63 @@ def get_learning_route_map(user_id: str = "user_mom") -> dict[str, Any]:
             (user_id, today_iso()),
         ).fetchone()
         version_lesson = None if lesson_row else get_published_lesson_from_versions(conn, user_id, today_iso())
+        user_route = load_user_learning_route(user_id)
+        if user_route:
+            items = []
+            for index, route_item in enumerate(user_route.get("route_items") or [], start=1):
+                item = dict(route_item)
+                item["day_number"] = int(item.get("day_number") or index)
+                item["recommended_order"] = item["day_number"]
+                item["theme"] = item.get("theme") or item.get("main_knowledge_label") or f"第 {index} 天"
+                item["knowledge_name"] = item.get("route_module_label") or item.get("knowledge_name") or item["theme"]
+                item["scenario_name"] = item.get("passage_module_label") or item.get("scenario_name") or "日常对话"
+                item["level_code"] = item.get("level_code") or user_route.get("stage", {}).get("name")
+                item["target_minutes"] = item.get("target_minutes") or user_route.get("daily_constraints", {}).get("target_minutes") or 30
+                item["mastery_score"] = 0
+                items.append(item)
+        else:
+            items = rows_to_dicts(
+                conn.execute(
+                    """
+                    SELECT
+                      cri.route_item_id,
+                      cri.recommended_order,
+                      cri.target_minutes,
+                      cri.objective,
+                      kp.name AS knowledge_name,
+                      kp.category AS knowledge_category,
+                      kp.description AS knowledge_description,
+                      sm.name AS scenario_name,
+                      sl.level_code,
+                      sl.goal AS scenario_goal,
+                      sl.vocabulary_scope,
+                      sl.sentence_scope,
+                      COALESCE(ukp.status, 'not_started') AS knowledge_status,
+                      COALESCE(ukp.mastery_score, 0) AS mastery_score,
+                      COALESCE(usp.status, 'not_started') AS scenario_status
+                    FROM curriculum_route_items cri
+                    LEFT JOIN knowledge_points kp ON kp.knowledge_id = cri.knowledge_id
+                    LEFT JOIN scenario_levels sl ON sl.scenario_level_id = cri.scenario_level_id
+                    LEFT JOIN scenario_modules sm ON sm.scenario_id = sl.scenario_id
+                    LEFT JOIN user_knowledge_progress ukp
+                      ON ukp.user_id = ? AND ukp.knowledge_id = cri.knowledge_id
+                    LEFT JOIN user_scenario_progress usp
+                      ON usp.user_id = ? AND usp.scenario_id = sm.scenario_id
+                    ORDER BY cri.recommended_order
+                    """,
+                    (user_id, user_id),
+                ).fetchall()
+            )
     active_route_id = None
     active_summary = None
     if lesson_row:
         lesson = safe_json_loads(lesson_row["lesson_json"], {})
-        active_route_id = (lesson.get("route_basis") or {}).get("route_item_id")
+        route_basis = lesson.get("route_basis") or {}
+        active_route_id = route_basis.get("content_route_item_id") or route_basis.get("route_item_id")
         active_summary = lesson.get("progress_summary") or build_progress_summary(lesson)
     elif version_lesson:
-        active_route_id = (version_lesson.get("route_basis") or {}).get("route_item_id")
+        route_basis = version_lesson.get("route_basis") or {}
+        active_route_id = route_basis.get("content_route_item_id") or route_basis.get("route_item_id")
         active_summary = version_lesson.get("progress_summary") or build_progress_summary(version_lesson)
     active_index = next(
         (index for index, item in enumerate(items, start=1) if item.get("route_item_id") == active_route_id),
@@ -2493,7 +2640,7 @@ def get_learning_route_map(user_id: str = "user_mom") -> dict[str, Any]:
         active_index = min(max(1, int(status.get("learning_days") or 0) + 1), max(1, len(items)))
     for index, item in enumerate(items, start=1):
         item["day_number"] = index
-        item["theme"] = item.get("knowledge_name") or item.get("scenario_name") or f"第 {index} 天"
+        item["theme"] = item.get("theme") or item.get("knowledge_name") or item.get("scenario_name") or f"第 {index} 天"
         summary = active_summary if item.get("route_item_id") == active_route_id and active_summary else build_route_progress_summary(item)
         item.update(summary)
         if index < active_index:

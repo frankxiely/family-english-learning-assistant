@@ -17,3 +17,4 @@
 - `docs/content_knowledge_base/`：资料来源、路线设计、lesson JSON 写作规则和音频策略。
 - `data/teaching_knowledge/source_catalog.v1.json`：资料来源的机器可读目录。
 - `data/teaching_knowledge/starter_phonics_route.v1.json`：零基础首阶段路线图初稿。
+- `data/teaching_knowledge/user_routes/`：用户级路线图，供 lesson 生成和学习进度 API 优先读取。

@@ -7,7 +7,7 @@ def test_lesson_generation_uses_content_knowledge_route(isolated_runtime) -> Non
     run_id, plan = core.generate_lesson_plan_json("user_mom", "2026-07-01")
     lesson = core.normalize_lesson_plan(run_id, plan)
 
-    assert plan["route_basis"]["content_route_item_id"] == "kb_route_phonics_001"
+    assert plan["route_basis"]["content_route_item_id"] == "vi_phonics_001"
     assert plan["route_basis"]["content_route_day"] == 1
     assert plan["progress_summary"]["main_knowledge_label"] == "/iː/ 和 /ɪ/"
     assert lesson["source_basis"] == ["src_cefr_official", "src_cambridge_pre_a1", "src_oxford_3000_5000"]
@@ -15,6 +15,19 @@ def test_lesson_generation_uses_content_knowledge_route(isolated_runtime) -> Non
     assert {asset["provider"] for asset in lesson["audio_assets"]} == {"web_speech_runtime"}
     assert all("rate" in asset and "voice_key" in asset for asset in lesson["audio_assets"])
     assert lesson["vocabulary"][0]["part_of_speech_zh"]
+
+
+def test_frank_lesson_generation_uses_advanced_user_route(isolated_runtime) -> None:
+    run_id, plan = core.generate_lesson_plan_json("user_admin_1", "2026-07-01")
+    lesson = core.normalize_lesson_plan(run_id, plan)
+
+    assert plan["route_basis"]["content_route_item_id"] == "frank_business_001"
+    assert plan["difficulty"] == "advanced"
+    assert plan["progress_summary"]["route_module_label"] == "高阶诊断和口语校准"
+    assert lesson["theme"] == "高阶诊断课：商务自我介绍与发音校准"
+    assert lesson["vocabulary"][0]["word"] == "concise"
+    assert lesson["passage"]["title"] == "A short briefing"
+    assert lesson["quiz"]["questions"][0]["question_id"] == "frank_business_001_q1"
 
 
 def test_published_lesson_can_be_completed_and_generate_next_draft(isolated_runtime) -> None:

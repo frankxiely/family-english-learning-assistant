@@ -1,0 +1,117 @@
+{
+  "schema_version": "user_learning_route.v1",
+  "route_id": "route_frank_business_advanced_v1",
+  "user_id": "user_admin_1",
+  "display_name": "Frank",
+  "updated_at": "2026-06-28",
+  "route_source": "admin_manual_v1_1",
+  "profile_basis": {
+    "age_band": "25",
+    "occupation": "master_student",
+    "english_foundation": "ielts_7_0",
+    "daily_minutes": 30,
+    "tone": "direct, adult, professional"
+  },
+  "stage": {
+    "stage_id": "frank_stage_1_business_output",
+    "name": "高阶表达诊断与商务输出",
+    "target_days": 10,
+    "stage_encouragement": "把已有英语能力转成稳定、清楚、有分寸的输出。",
+    "goal": "在已有 IELTS 7.0 基础上，提升学术表达、职场沟通、复杂阅读和高质量口语输出。"
+  },
+  "daily_constraints": {
+    "target_minutes": 30,
+    "new_word_limit": 4,
+    "knowledge_point_limit": 1,
+    "quiz_count": {
+      "min": 3,
+      "max": 5
+    }
+  },
+  "route_items": [
+    {
+      "route_item_id": "frank_business_001",
+      "day_number": 1,
+      "theme": "高阶诊断课：商务自我介绍与发音校准",
+      "route_module_label": "高阶诊断和口语校准",
+      "main_knowledge_label": "句子重音、语速控制、简洁自我介绍",
+      "passage_module_label": "职场介绍对话",
+      "level_code": "B2-C1",
+      "target_minutes": 30,
+      "difficulty": "advanced",
+      "knowledge_id": "kp_advanced_business_intro",
+      "teaching_knowledge_id": "kb_business_001_self_intro",
+      "vocabulary": [
+        {"word": "concise", "phonetic": "/kənˈsaɪs/", "part_of_speech": "adjective", "part_of_speech_zh": "形容词", "meaning": "简明的", "needs_image": false},
+        {"word": "stakeholder", "phonetic": "/ˈsteɪkˌhoʊldər/", "part_of_speech": "noun", "part_of_speech_zh": "名词", "meaning": "利益相关方", "needs_image": false},
+        {"word": "priority", "phonetic": "/praɪˈɔːrəti/", "part_of_speech": "noun", "part_of_speech_zh": "名词", "meaning": "优先事项", "needs_image": false},
+        {"word": "briefing", "phonetic": "/ˈbriːfɪŋ/", "part_of_speech": "noun", "part_of_speech_zh": "名词", "meaning": "简报", "needs_image": false}
+      ],
+      "objectives": [
+        "用 30 秒完成清楚、克制的英文自我介绍",
+        "识别句子重音和信息焦点",
+        "掌握 concise、stakeholder、priority、briefing 的核心用法",
+        "完成 3 道高阶诊断题"
+      ],
+      "preview": "今天先做输出诊断：不是学更多难词，而是把表达说得更清楚、更短、更有重点。",
+      "knowledge_title": "高阶诊断课：商务自我介绍与发音校准",
+      "knowledge_cards": [
+        "1. 高阶口语的第一步不是加长句子，而是控制信息密度。每句话只服务一个重点。",
+        "2. 句子重音通常落在新信息上，例如 current priority、key stakeholder、short briefing。",
+        "3. 商务自我介绍可以用三步：身份、当前任务、能提供的价值。",
+        "4. 发音练习重点是稳定语速。先清楚，再自然，不要为了流利牺牲可理解性。"
+      ],
+      "passage": {
+        "title": "A short briefing",
+        "passage_type": "dialogue",
+        "lines": [
+          {"role": "Manager", "text": "Frank, could you give us a concise briefing?", "translation": "Frank，你能做一个简明的简报吗？"},
+          {"role": "Frank", "text": "Sure. Our current priority is to align the key stakeholders.", "translation": "当然。我们当前的优先事项是协调关键利益相关方。"},
+          {"role": "Manager", "text": "Good. Keep it clear and practical.", "translation": "很好。保持清楚和务实。"},
+          {"role": "Frank", "text": "I will focus on the decision points and next steps.", "translation": "我会聚焦决策点和下一步行动。"}
+        ],
+        "difficult_words": [
+          {"word": "align", "meaning": "使一致；协调"},
+          {"word": "decision points", "meaning": "需要做决定的关键点"}
+        ]
+      },
+      "quiz_questions": [
+        {
+          "question_id": "frank_business_001_q1",
+          "prompt": "今天的输出重点是什么？",
+          "options": ["简洁清楚地完成商务介绍", "背诵长篇文章", "学习零基础音标"],
+          "answer": "简洁清楚地完成商务介绍",
+          "explanation": "Frank 的第一课是高阶诊断课，重点是清楚、简洁、有重点的输出。",
+          "error_tag": "business_output_focus"
+        },
+        {
+          "question_id": "frank_business_001_q2",
+          "prompt": "concise 的核心意思是？",
+          "options": ["简明的", "紧张的", "随意的"],
+          "answer": "简明的",
+          "explanation": "concise 表示用更少的话表达清楚重点。",
+          "related_word_ids": ["word_concise"],
+          "error_tag": "word_meaning"
+        },
+        {
+          "question_id": "frank_business_001_q3",
+          "prompt": "商务自我介绍更应该优先做到什么？",
+          "options": ["身份、任务和价值清楚", "句子越长越好", "尽量使用生僻词"],
+          "answer": "身份、任务和价值清楚",
+          "explanation": "高阶表达优先追求信息结构，而不是堆叠复杂词。",
+          "error_tag": "business_structure"
+        }
+      ],
+      "source_basis": ["src_cefr_official", "src_british_council_learnenglish", "src_cambridge_dictionary"]
+    },
+    {"route_item_id": "frank_business_002", "day_number": 2, "theme": "会议开场与议程控制", "route_module_label": "商务会议表达", "main_knowledge_label": "opening, agenda, alignment", "passage_module_label": "会议开场对话", "level_code": "B2-C1", "target_minutes": 30, "new_words": ["agenda", "alignment", "objective", "constraint"], "sentence_patterns": ["Let us align on the objective.", "The main constraint is time."], "source_basis": ["src_british_council_learnenglish"]},
+    {"route_item_id": "frank_business_003", "day_number": 3, "theme": "数据陈述与谨慎判断", "route_module_label": "数据表达", "main_knowledge_label": "trend, assumption, evidence", "passage_module_label": "数据汇报对话", "level_code": "B2-C1", "target_minutes": 30, "new_words": ["trend", "assumption", "evidence", "estimate"], "sentence_patterns": ["The trend is positive.", "This estimate depends on one assumption."], "source_basis": ["src_cefr_official"]},
+    {"route_item_id": "frank_business_004", "day_number": 4, "theme": "客户沟通中的缓和表达", "route_module_label": "客户沟通", "main_knowledge_label": "softening, clarification, next step", "passage_module_label": "客户沟通对话", "level_code": "B2-C1", "target_minutes": 30, "new_words": ["clarify", "concern", "proposal", "timeline"], "sentence_patterns": ["Could I clarify one point?", "The proposal is feasible."], "source_basis": ["src_british_council_learnenglish"]},
+    {"route_item_id": "frank_business_005", "day_number": 5, "theme": "风险与合规表达", "route_module_label": "风险合规英语", "main_knowledge_label": "risk, compliance, mitigation", "passage_module_label": "风险讨论对话", "level_code": "B2-C1", "target_minutes": 30, "new_words": ["risk", "compliance", "mitigation", "exposure"], "sentence_patterns": ["We need to reduce the exposure.", "Compliance is a priority."], "source_basis": ["src_cefr_official"]},
+    {"route_item_id": "frank_business_006", "day_number": 6, "theme": "谈判中的立场表达", "route_module_label": "谈判表达", "main_knowledge_label": "position, trade-off, condition", "passage_module_label": "谈判对话", "level_code": "B2-C1", "target_minutes": 30, "new_words": ["position", "trade-off", "condition", "margin"], "sentence_patterns": ["Our position is clear.", "There is a trade-off here."], "source_basis": ["src_british_council_learnenglish"]},
+    {"route_item_id": "frank_business_007", "day_number": 7, "theme": "英语输出复盘与发音修正", "route_module_label": "输出复盘", "main_knowledge_label": "pace, stress, repair", "passage_module_label": "复盘对话", "level_code": "B2-C1", "target_minutes": 30, "review_words": ["concise", "priority", "agenda", "risk"], "sentence_patterns": ["Let me rephrase that.", "The key point is this."], "source_basis": ["src_cefr_official"]},
+    {"route_item_id": "frank_academic_008", "day_number": 8, "theme": "雅思式观点结构迁移", "route_module_label": "学术表达", "main_knowledge_label": "claim, reason, example", "passage_module_label": "观点表达对话", "level_code": "B2-C1", "target_minutes": 30, "new_words": ["claim", "reasoning", "implication", "counterpoint"], "sentence_patterns": ["My main claim is simple.", "The implication is practical."], "source_basis": ["src_cefr_official"]},
+    {"route_item_id": "frank_business_009", "day_number": 9, "theme": "领导视角的英文更新", "route_module_label": "管理沟通", "main_knowledge_label": "status update, blocker, decision", "passage_module_label": "管理更新对话", "level_code": "B2-C1", "target_minutes": 30, "new_words": ["blocker", "decision", "resource", "milestone"], "sentence_patterns": ["The main blocker is resources.", "We need a decision today."], "source_basis": ["src_british_council_learnenglish"]},
+    {"route_item_id": "frank_checkpoint_010", "day_number": 10, "theme": "十天输出检查点", "route_module_label": "阶段检查", "main_knowledge_label": "business summary and spoken clarity", "passage_module_label": "综合汇报对话", "level_code": "B2-C1", "target_minutes": 30, "review_words": ["concise", "stakeholder", "alignment", "risk", "decision"], "sentence_patterns": ["Here is the concise summary.", "The next step is clear."], "source_basis": ["src_cefr_official", "src_british_council_learnenglish"]}
+  ]
+}
