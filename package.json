@@ -1,0 +1,23 @@
+{
+  "name": "family-english-learning-assistant",
+  "version": "1.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "sh scripts/dev.sh",
+    "init-db": "sh scripts/init_db.sh",
+    "generate-today": "sh scripts/generate_today.sh",
+    "debug": "sh scripts/debug_modules.sh",
+    "test:api": ".venv/bin/python -m pytest",
+    "test:e2e": "playwright test",
+    "web:dev": "npm --prefix apps/web run dev",
+    "api:dev": "uvicorn services.api.app.main:app --reload --host 127.0.0.1 --port 8000"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "@vitejs/plugin-react": "^5.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "typescript": "^5.0.0",
+    "vite": "^7.0.0"
+  }
+}

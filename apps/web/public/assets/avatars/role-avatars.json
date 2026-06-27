@@ -1,0 +1,42 @@
+[
+  {
+    "avatar_id": "mom_secondary",
+    "role_names": ["mom", "mother", "mum", "mama", "妈妈"],
+    "gender": "female",
+    "occupation": "family",
+    "path": "/assets/avatars/roles/mom2.png",
+    "source": "local_user_provided"
+  },
+  {
+    "avatar_id": "doctor_female",
+    "role_names": ["doctor", "female doctor", "医生", "女医生"],
+    "gender": "female",
+    "occupation": "doctor",
+    "path": "/assets/avatars/roles/doctor-female.png",
+    "source": "local_user_provided"
+  },
+  {
+    "avatar_id": "doctor_male",
+    "role_names": ["male doctor", "doctor male", "男医生"],
+    "gender": "male",
+    "occupation": "doctor",
+    "path": "/assets/avatars/roles/doctor-male.png",
+    "source": "local_user_provided"
+  },
+  {
+    "avatar_id": "teacher_female",
+    "role_names": ["teacher", "female teacher", "老师", "女老师"],
+    "gender": "female",
+    "occupation": "teacher",
+    "path": "/assets/avatars/roles/teacher-female.png",
+    "source": "local_user_provided"
+  },
+  {
+    "avatar_id": "admin_male",
+    "role_names": ["admin", "administrator", "admin_1", "adminxly", "管理员"],
+    "gender": "male",
+    "occupation": "administrator",
+    "path": "/assets/avatars/roles/admin-male.png",
+    "source": "local_user_provided"
+  }
+]

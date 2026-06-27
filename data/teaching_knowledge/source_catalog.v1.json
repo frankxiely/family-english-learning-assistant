@@ -1,0 +1,86 @@
+{
+  "schema_version": "source_catalog.v1",
+  "updated_at": "2026-06-28",
+  "sources": [
+    {
+      "source_id": "src_cefr_official",
+      "name": "Common European Framework of Reference for Languages",
+      "url": "https://www.coe.int/en/web/common-european-framework-reference-languages",
+      "category": "level_framework",
+      "use_for": ["stage_goals", "can_do_descriptors", "assessment_alignment"],
+      "license_note": "Use as reference framework. Do not copy long official text into lessons."
+    },
+    {
+      "source_id": "src_british_council_learnenglish",
+      "name": "British Council LearnEnglish",
+      "url": "https://learnenglish.britishcouncil.org/",
+      "category": "lesson_structure_reference",
+      "use_for": ["a1_task_patterns", "adult_scenarios", "listening_lesson_structure"],
+      "license_note": "Reference task structure and scenario granularity only. Do not copy lesson text or audio."
+    },
+    {
+      "source_id": "src_cambridge_pre_a1",
+      "name": "Cambridge English Pre-A1 activities",
+      "url": "https://www.cambridgeenglish.org/learning-english/parents-and-children/activities-for-children/pre-a1-level/",
+      "category": "pre_a1_difficulty_reference",
+      "use_for": ["small_step_design", "visual_tasks", "pre_a1_word_domains"],
+      "license_note": "Reference difficulty and task type only. Rewrite content for adult learner context."
+    },
+    {
+      "source_id": "src_oxford_3000_5000",
+      "name": "Oxford 3000 and Oxford 5000",
+      "url": "https://www.oxfordlearnersdictionaries.com/wordlists/oxford3000-5000",
+      "category": "vocabulary_priority",
+      "use_for": ["cefr_vocabulary_level", "word_priority", "review_scope"],
+      "license_note": "Use as lookup/reference. Do not bulk copy full word list."
+    },
+    {
+      "source_id": "src_cambridge_dictionary",
+      "name": "Cambridge Dictionary",
+      "url": "https://dictionary.cambridge.org/",
+      "category": "dictionary_reference",
+      "use_for": ["phonetic_check", "part_of_speech_check", "core_meaning_check"],
+      "license_note": "Manual verification only. Do not scrape definitions or examples."
+    },
+    {
+      "source_id": "src_bbc_learning_english",
+      "name": "BBC Learning English",
+      "url": "https://www.bbc.co.uk/learningenglish/",
+      "category": "pronunciation_and_lesson_reference",
+      "use_for": ["pronunciation_explanation_style", "short_audio_lesson_pattern"],
+      "license_note": "Reference structure only. Do not copy or cache media."
+    },
+    {
+      "source_id": "src_mdn_web_speech",
+      "name": "MDN Web Speech API",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/SpeechSynthesisUtterance",
+      "category": "audio_runtime_reference",
+      "use_for": ["web_speech_fallback", "voice_rate_pitch_parameters"],
+      "license_note": "Developer documentation reference."
+    },
+    {
+      "source_id": "src_google_tts_ssml",
+      "name": "Google Cloud Text-to-Speech SSML",
+      "url": "https://cloud.google.com/text-to-speech/docs/ssml",
+      "category": "tts_provider_reference",
+      "use_for": ["ssml_breaks", "voice_selection", "phoneme_tag", "timepoints"],
+      "license_note": "Provider documentation reference. API usage may require paid account."
+    },
+    {
+      "source_id": "src_azure_tts_ssml",
+      "name": "Azure AI Speech SSML",
+      "url": "https://learn.microsoft.com/en-us/azure/ai-services/speech-service/speech-synthesis-markup-voice",
+      "category": "tts_provider_reference",
+      "use_for": ["multi_voice_dialogue", "style_role_rate_pitch", "neural_tts"],
+      "license_note": "Provider documentation reference. API usage may require paid account."
+    },
+    {
+      "source_id": "src_piper_tts",
+      "name": "Piper local TTS",
+      "url": "https://github.com/rhasspy/piper",
+      "category": "local_tts_candidate",
+      "use_for": ["offline_audio_generation", "local_audio_asset_cache"],
+      "license_note": "Check current project status, model license, and voice license before use."
+    }
+  ]
+}

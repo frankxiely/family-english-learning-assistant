@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "learning_review_json.v1",
+  "type": "object",
+  "required": ["schema_version", "user_id", "lesson_asset_id", "review_date", "human_readable_summary", "completed_sections", "mastered_words", "weak_words", "difficulty_points", "next_day_adjustment"],
+  "properties": {
+    "schema_version": { "const": "learning_review_json.v1" },
+    "user_id": { "type": "string" },
+    "lesson_asset_id": { "type": "string" },
+    "review_date": { "type": "string" },
+    "human_readable_summary": { "type": "string" },
+    "admin_note": { "type": ["string", "null"] },
+    "completed_sections": { "type": "array", "items": { "type": "string" } },
+    "mastered_words": { "type": "array", "items": { "type": "string" } },
+    "weak_words": { "type": "array", "items": { "type": "string" } },
+    "difficulty_points": { "type": "array", "items": { "type": "string" } },
+    "next_day_adjustment": { "type": "string" }
+  }
+}

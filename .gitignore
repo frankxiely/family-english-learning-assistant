@@ -1,0 +1,21 @@
+.DS_Store
+.env
+.venv/
+node_modules/
+dist/
+apps/web/dist/
+test-results/
+playwright-report/
+apps/web/src/styles 2.css
+data/lesson_exports/*.csv
+data/lesson_exports/*.md
+*.egg-info/
+__pycache__/
+*.pyc
+data/sqlite/*.db
+data/sqlite/*.db-*
+data/sqlite/backups/*.db
+data/logs/**/*.log
+data/lesson_json/raw/*.json
+data/lesson_json/normalized/*.json
+data/lesson_json/validated/*.json

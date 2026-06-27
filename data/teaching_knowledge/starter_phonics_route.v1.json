@@ -1,0 +1,181 @@
+{
+  "schema_version": "starter_route.v1",
+  "updated_at": "2026-06-28",
+  "audience": {
+    "primary_user": "adult_near_zero_foundation",
+    "daily_minutes": 30,
+    "tone": "adult, calm, encouraging, not childish"
+  },
+  "stage": {
+    "stage_id": "stage_0_phonics_starter",
+    "name": "音标和基础拼读入门",
+    "target_days": 14,
+    "goal": "建立英语声音、音节和基础拼读意识，为后续日常和银行场景表达做准备。",
+    "pass_criteria": [
+      "能区分至少 4 组常见音标对比",
+      "能读出 20 到 30 个首阶段单词",
+      "能完成 8 到 10 段短对话跟读",
+      "能理解音标、音节、元音和辅音的基础关系"
+    ]
+  },
+  "daily_constraints": {
+    "new_word_limit": 4,
+    "review_word_limit": 3,
+    "knowledge_point_limit": 1,
+    "passage_line_count": {
+      "min": 4,
+      "max": 6
+    },
+    "quiz_count": {
+      "min": 3,
+      "max": 5
+    },
+    "knowledge_card_count": {
+      "min": 2,
+      "max": 4
+    }
+  },
+  "route_items": [
+    {
+      "route_item_id": "kb_route_phonics_001",
+      "day_number": 1,
+      "route_module_label": "音标和音节入门",
+      "main_knowledge_label": "/iː/ 和 /ɪ/",
+      "passage_module_label": "课堂跟读对话",
+      "knowledge_id": "kp_phonics_i_long_i_short",
+      "teaching_knowledge_id": "kb_phonics_001_i_long_i_short",
+      "phonics_focus": ["/iː/", "/ɪ/"],
+      "new_words": ["see", "sit", "seat", "it"],
+      "sentence_patterns": ["I see it.", "Sit on the seat."],
+      "asset_requirements": ["word_images", "word_audio", "passage_line_audio", "role_avatars"],
+      "source_basis": ["src_cefr_official", "src_cambridge_pre_a1", "src_oxford_3000_5000"]
+    },
+    {
+      "route_item_id": "kb_route_phonics_002",
+      "day_number": 2,
+      "route_module_label": "短元音听辨",
+      "main_knowledge_label": "/e/ 和 /æ/",
+      "passage_module_label": "桌面物品对话",
+      "knowledge_id": "kp_phonics_e_short_a",
+      "teaching_knowledge_id": "kb_phonics_002_e_short_a",
+      "phonics_focus": ["/e/", "/æ/"],
+      "new_words": ["pen", "bed", "bag", "map"],
+      "sentence_patterns": ["I see a pen.", "It is a bag."],
+      "asset_requirements": ["word_images", "word_audio", "passage_line_audio"],
+      "source_basis": ["src_cambridge_pre_a1", "src_oxford_3000_5000"]
+    },
+    {
+      "route_item_id": "kb_route_phonics_003",
+      "day_number": 3,
+      "route_module_label": "元音开口练习",
+      "main_knowledge_label": "/ɑː/ 和 /ʌ/",
+      "passage_module_label": "家庭物品对话",
+      "knowledge_id": "kp_phonics_a_long_u_short",
+      "teaching_knowledge_id": "kb_phonics_003_a_long_u_short",
+      "phonics_focus": ["/ɑː/", "/ʌ/"],
+      "new_words": ["car", "cup", "arm", "sun"],
+      "sentence_patterns": ["I see a cup.", "The car is here."],
+      "asset_requirements": ["word_images", "word_audio", "passage_line_audio"],
+      "source_basis": ["src_cambridge_pre_a1", "src_oxford_3000_5000"]
+    },
+    {
+      "route_item_id": "kb_route_phonics_004",
+      "day_number": 4,
+      "route_module_label": "圆唇元音练习",
+      "main_knowledge_label": "/uː/ 和 /ʊ/",
+      "passage_module_label": "食物和书本对话",
+      "knowledge_id": "kp_phonics_u_long_u_short",
+      "teaching_knowledge_id": "kb_phonics_004_u_long_u_short",
+      "phonics_focus": ["/uː/", "/ʊ/"],
+      "new_words": ["food", "book", "good", "look"],
+      "sentence_patterns": ["Look at the book.", "The food is good."],
+      "asset_requirements": ["word_images", "word_audio", "passage_line_audio"],
+      "source_basis": ["src_cambridge_pre_a1", "src_oxford_3000_5000"]
+    },
+    {
+      "route_item_id": "kb_route_phonics_005",
+      "day_number": 5,
+      "route_module_label": "双元音入门",
+      "main_knowledge_label": "/eɪ/ 和 /aɪ/",
+      "passage_module_label": "自我介绍对话",
+      "knowledge_id": "kp_phonics_ei_ai",
+      "teaching_knowledge_id": "kb_phonics_005_ei_ai",
+      "phonics_focus": ["/eɪ/", "/aɪ/"],
+      "new_words": ["day", "name", "I", "like"],
+      "sentence_patterns": ["I am Vi.", "I like it."],
+      "asset_requirements": ["word_audio", "passage_line_audio", "role_avatars"],
+      "source_basis": ["src_british_council_learnenglish", "src_oxford_3000_5000"]
+    },
+    {
+      "route_item_id": "kb_route_phonics_006",
+      "day_number": 6,
+      "route_module_label": "辅音爆破音入门",
+      "main_knowledge_label": "/p/ 和 /b/",
+      "passage_module_label": "银行物品对话",
+      "knowledge_id": "kp_phonics_p_b",
+      "teaching_knowledge_id": "kb_phonics_006_p_b",
+      "phonics_focus": ["/p/", "/b/"],
+      "new_words": ["pen", "bank", "bag", "please"],
+      "sentence_patterns": ["Please sit.", "This is a bank."],
+      "asset_requirements": ["word_images", "word_audio", "passage_line_audio"],
+      "source_basis": ["src_british_council_learnenglish", "src_oxford_3000_5000"]
+    },
+    {
+      "route_item_id": "kb_route_phonics_007",
+      "day_number": 7,
+      "route_module_label": "首周复习",
+      "main_knowledge_label": "长短元音和简单音节",
+      "passage_module_label": "复习对话",
+      "knowledge_id": "kp_phonics_week1_review",
+      "teaching_knowledge_id": "kb_phonics_007_week1_review",
+      "phonics_focus": ["/iː/", "/ɪ/", "/e/", "/æ/", "/uː/", "/ʊ/"],
+      "new_words": [],
+      "review_words": ["see", "sit", "seat", "pen", "bag", "book"],
+      "sentence_patterns": ["I see it.", "Look at the book.", "It is a bag."],
+      "asset_requirements": ["review_audio", "passage_line_audio"],
+      "source_basis": ["src_cefr_official", "src_cambridge_pre_a1"]
+    },
+    {
+      "route_item_id": "kb_route_phonics_008",
+      "day_number": 8,
+      "route_module_label": "辅音舌尖音入门",
+      "main_knowledge_label": "/t/ 和 /d/",
+      "passage_module_label": "日常问候对话",
+      "knowledge_id": "kp_phonics_t_d",
+      "teaching_knowledge_id": "kb_phonics_008_t_d",
+      "phonics_focus": ["/t/", "/d/"],
+      "new_words": ["today", "tea", "day", "desk"],
+      "sentence_patterns": ["Good day.", "Tea is on the desk."],
+      "asset_requirements": ["word_images", "word_audio", "passage_line_audio"],
+      "source_basis": ["src_british_council_learnenglish", "src_oxford_3000_5000"]
+    },
+    {
+      "route_item_id": "kb_route_phonics_009",
+      "day_number": 9,
+      "route_module_label": "辅音摩擦音入门",
+      "main_knowledge_label": "/s/ 和 /z/",
+      "passage_module_label": "服务表达对话",
+      "knowledge_id": "kp_phonics_s_z",
+      "teaching_knowledge_id": "kb_phonics_009_s_z",
+      "phonics_focus": ["/s/", "/z/"],
+      "new_words": ["see", "is", "please", "zero"],
+      "sentence_patterns": ["Please see this.", "It is zero."],
+      "asset_requirements": ["word_audio", "passage_line_audio"],
+      "source_basis": ["src_british_council_learnenglish", "src_oxford_3000_5000"]
+    },
+    {
+      "route_item_id": "kb_route_phonics_010",
+      "day_number": 10,
+      "route_module_label": "音节拼读入门",
+      "main_knowledge_label": "CVC 和 CV 音节",
+      "passage_module_label": "拼读复习对话",
+      "knowledge_id": "kp_syllable_cvc_cv",
+      "teaching_knowledge_id": "kb_phonics_010_cvc_cv",
+      "phonics_focus": ["CVC", "CV"],
+      "new_words": ["me", "sit", "pen", "cup"],
+      "sentence_patterns": ["Read it.", "I can read it."],
+      "asset_requirements": ["word_audio", "passage_line_audio"],
+      "source_basis": ["src_cefr_official", "src_cambridge_pre_a1"]
+    }
+  ]
+}
