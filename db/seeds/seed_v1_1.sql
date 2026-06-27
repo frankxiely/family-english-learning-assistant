@@ -1,3 +1,5 @@
+-- v1.1 test/demo seed data only. Production/local-use initialization must run schema only.
+
 INSERT OR IGNORE INTO users (user_id, nickname, role, status)
 VALUES ('user_mom', 'Vi', 'learner', 'active');
 

@@ -15,5 +15,5 @@ def isolated_runtime(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setattr(core, "VALIDATED_DIR", tmp_path / "lesson_json" / "validated")
     monkeypatch.setattr(core, "EXPORT_DIR", tmp_path / "lesson_exports")
     monkeypatch.setattr(core, "WORD_IMAGE_DIR", tmp_path / "web_public" / "word_images")
-    core.init_db()
+    core.init_db(seed_test_data=True)
     return tmp_path

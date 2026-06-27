@@ -4,6 +4,7 @@ import csv
 import hashlib
 import io
 import json
+import os
 import re
 import secrets
 import sqlite3
@@ -14,7 +15,14 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[3]
-DB_PATH = ROOT / "data" / "sqlite" / "app.db"
+
+
+def resolve_project_path(raw_path: str | Path) -> Path:
+    path = Path(raw_path).expanduser()
+    return path if path.is_absolute() else ROOT / path
+
+
+DB_PATH = resolve_project_path(os.environ.get("MOMO_DB_PATH", "data/sqlite/app.db"))
 SCHEMA_PATH = ROOT / "db" / "migrations" / "001_initial_schema.sql"
 SEED_PATH = ROOT / "db" / "seeds" / "seed_v1_1.sql"
 RAW_DIR = ROOT / "data" / "lesson_json" / "raw"
@@ -115,11 +123,18 @@ def connect() -> sqlite3.Connection:
     return conn
 
 
-def init_db() -> None:
+def init_db(seed_test_data: bool = False) -> None:
     with connect() as conn:
         conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
-        conn.executescript(SEED_PATH.read_text(encoding="utf-8"))
-        log_debug(conn, "db", "info", "database initialized", {"db_path": str(DB_PATH)})
+        if seed_test_data:
+            conn.executescript(SEED_PATH.read_text(encoding="utf-8"))
+        log_debug(
+            conn,
+            "db",
+            "info",
+            "database initialized",
+            {"db_path": str(DB_PATH), "seed_test_data": seed_test_data},
+        )
         conn.commit()
 
 

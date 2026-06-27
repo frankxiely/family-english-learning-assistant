@@ -65,6 +65,8 @@
 - 新增 `test:api` 和 `test:e2e` 脚本，并安装 `@playwright/test`。
 - 修复账号设置不持久的问题：种子脚本不再覆盖用户昵称、密码、画像和学习状态；学习端登录后会保存本地 session；管理员双身份账号改名会同步 `users` 和 `admin_users`。
 - 新增账户设置 E2E，验证 `AdminXLY` 修改用户名后刷新仍保留；新增后端测试验证改名/改密码经过 `init_db()` 后不会被重置。
+- 隔离 seed 数据：`scripts/init_db.sh` 和运行时 `init_db()` 默认只初始化 schema；测试/demo 数据必须显式通过 `scripts/seed_test_data.sh` 或 `--seed-test-data` 加载。
+- Playwright E2E 改用独立测试库 `data/sqlite/e2e.db` 和独立端口 `18000/15173`，避免污染真实本地使用数据。
 - 将当前课程重构为 30 分钟“音标第一课：/iː/ 和 /ɪ/”，包含教材式对话和系统知识讲解。
 - 新增 `teaching_knowledge_assets` 教学知识库表和首个音标知识资产。
 - 将前端主色调调整为舒适蓝绿风格。

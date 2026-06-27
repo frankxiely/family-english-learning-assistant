@@ -1,6 +1,6 @@
 # 家庭英语学习助手
 
-v1.1 目标：本地主机 + 网页运行。当前首位学习者是妈妈，管理员是你；系统先使用本地模板、手工录入和 mock provider 完成每日学习计划与学习复盘，不依赖 OpenAI API。
+v1.1 目标：本地主机 + 网页运行。当前首位学习者是妈妈，管理员是你；系统先使用本地模板、手工录入和 mock provider 完成每日学习计划与学习复盘，不依赖 OpenAI API。正式本地使用时数据库只初始化表结构，不自动灌入测试 seed。
 
 ## 当前工作流
 
@@ -20,6 +20,7 @@ v1.1 目标：本地主机 + 网页运行。当前首位学习者是妈妈，管
 
 ```bash
 scripts/init_db.sh
+scripts/seed_test_data.sh
 scripts/generate_today.sh
 scripts/debug_modules.sh
 scripts/backup_db.sh
@@ -27,6 +28,8 @@ scripts/export_learning_log.sh markdown
 scripts/export_learning_log.sh csv
 sqlite3 data/sqlite/app.db ".read scripts/reset_user_mom_learning_records.sql"
 ```
+
+`scripts/init_db.sh` 只创建或迁移真实本地库结构，不写入样例账号、样例课程或测试学习记录。需要测试/demo 数据时，显式执行 `scripts/seed_test_data.sh`；后端 pytest 和 Playwright E2E 会在隔离测试库中自动加载这份 seed。
 
 验收命令：
 
@@ -82,7 +85,7 @@ scripts/debug_modules.sh
 
 - SQLite 数据库是否可访问
 - 核心表是否存在
-- 种子用户和课程路线图是否存在
+- 当前库中的用户、课程路线图和内容知识库是否可用
 - `lesson_plan_json` 是否可生成
 - 标准 lesson JSON 是否可入库
 - 今日学习 API 数据是否可查询
@@ -134,7 +137,7 @@ scripts/debug_modules.sh
 - `services/api/`：后端 API 和核心业务逻辑。
 - `apps/web/`：手机优先网页端。
 - `db/migrations/`：数据库迁移 SQL。
-- `db/seeds/`：初始化种子数据。
+- `db/seeds/`：测试/demo seed 数据；真实本地初始化不默认执行。
 - `docs/content_knowledge_base/`：内容知识库说明、资料来源、路线设计、lesson JSON 写作规则和音频策略。
 - `data/sqlite/`：本地 SQLite 数据库。
 - `data/teaching_knowledge/`：可机器读取的资料来源目录和课程路线图草稿。

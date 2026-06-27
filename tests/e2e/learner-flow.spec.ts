@@ -12,8 +12,10 @@ type LessonResponse = {
   };
 };
 
+const apiBase = "http://127.0.0.1:18000";
+
 test("mobile learner can complete today's lesson", async ({ page, request }) => {
-  const lessonResponse = await request.get("http://127.0.0.1:8000/api/learning/today?user_id=user_admin_1");
+  const lessonResponse = await request.get(`${apiBase}/api/learning/today?user_id=user_admin_1`);
   expect(lessonResponse.ok()).toBeTruthy();
   const lessonPayload = (await lessonResponse.json()) as LessonResponse;
   const questionAnswers = lessonPayload.lesson_json.quiz?.questions?.map((question) => question.answer) ?? [];
@@ -60,14 +62,14 @@ test("mobile learner can complete today's lesson", async ({ page, request }) => 
 
 test("account display name persists after refresh", async ({ page, request }) => {
   const restoreDisplayName = async () => {
-    const login = await request.post("http://127.0.0.1:8000/api/auth/login", {
+    const login = await request.post(`${apiBase}/api/auth/login`, {
       data: { login_account: "AdminXLY", password: "Frank1229", remember: true },
     });
     if (!login.ok()) return;
     const body = await login.json();
     const token = body.session?.session_token;
     if (!token) return;
-    await request.put("http://127.0.0.1:8000/api/account/display-name", {
+    await request.put(`${apiBase}/api/account/display-name`, {
       headers: { Authorization: `Bearer ${token}` },
       data: { username: "Admin_1" },
     });

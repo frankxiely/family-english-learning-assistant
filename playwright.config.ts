@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const e2eApiBase = "http://127.0.0.1:18000";
+const e2eWebBase = "http://127.0.0.1:15173";
+
 export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 90_000,
@@ -7,20 +10,23 @@ export default defineConfig({
     timeout: 10_000,
   },
   use: {
-    baseURL: "http://127.0.0.1:5173",
+    baseURL: e2eWebBase,
+    extraHTTPHeaders: {
+      "x-e2e-api-base": e2eApiBase,
+    },
     trace: "retain-on-failure",
   },
   webServer: [
     {
-      command: ".venv/bin/uvicorn services.api.app.main:app --host 127.0.0.1 --port 8000",
-      url: "http://127.0.0.1:8000/api/health",
-      reuseExistingServer: true,
+      command: "scripts/start_e2e_api.sh",
+      url: `${e2eApiBase}/api/health`,
+      reuseExistingServer: false,
       timeout: 120_000,
     },
     {
-      command: "npm --prefix apps/web run dev",
-      url: "http://127.0.0.1:5173/login",
-      reuseExistingServer: true,
+      command: "scripts/start_e2e_web.sh",
+      url: `${e2eWebBase}/login`,
+      reuseExistingServer: false,
       timeout: 120_000,
     },
   ],
