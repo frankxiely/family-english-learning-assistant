@@ -1,6 +1,6 @@
 # 家庭英语学习助手
 
-v1.1 目标：本地主机优先 + 可发布公开网页试用。当前首位学习者是妈妈，管理员是你；系统先使用本地模板、手工录入和 mock provider 完成每日学习计划与学习复盘，不依赖 OpenAI API。正式本地使用时数据库只初始化表结构，不自动灌入测试 seed；公开试用采用 GitHub Pages 前端和 Render 后端。
+v1.1 目标：本地主机优先 + 可发布公开网页试用。当前首位学习者是妈妈，管理员是你；系统先使用本地模板、手工录入和 mock provider 完成每日学习计划与学习复盘，不依赖 OpenAI API。正式本地使用时数据库只初始化表结构，不自动灌入测试 seed；当前免费公开试用采用 GitHub Pages 前端 + Cloudflare Quick Tunnel 转发本机后端，Render 仅作为后续长期云部署备选。
 
 ## 当前工作流
 
@@ -50,12 +50,14 @@ npm run dev
 
 ## 公开网页访问
 
-当前公开部署采用“GitHub Pages 前端 + Render Docker 后端 + SQLite 持久化磁盘”：
+当前免费公开试用采用“GitHub Pages 前端 + Cloudflare Quick Tunnel + 本机 FastAPI + 本机 SQLite”：
 
 - GitHub Pages 发布 `apps/web` 静态网页。
-- 前端生产构建通过 `VITE_API_BASE_URL` 连接公网 API。
-- 后端通过 `Dockerfile` 和 `render.yaml` 部署，`MOMO_DB_PATH` 指向持久化 SQLite。
-- 后端 `MOMO_CORS_ORIGINS` 必须填写 GitHub Pages 的 origin，例如 `https://你的GitHub用户名.github.io`。
+- 前端生产构建通过 `VITE_API_BASE_URL` 连接 Cloudflare tunnel 公网 API。
+- 本机运行 FastAPI 后端，数据库仍使用本机 `data/sqlite/app.db`。
+- `cloudflared tunnel --url http://127.0.0.1:8000` 把本机 API 临时转发到公网。
+- 后端 `MOMO_CORS_ORIGINS` 必须包含 GitHub Pages 的 origin，例如 `https://你的GitHub用户名.github.io`。
+- 这是一种免费临时公网形态：电脑休眠、后端停止、tunnel 停止或 tunnel 地址变化后，公开网页的 API 会不可用；如果 tunnel 地址变化，需要更新 GitHub 仓库变量并重新部署 Pages。
 
 详细步骤见 `docs/engineering/public_deploy_github.md`。只用 GitHub Pages 不能完成完整功能，因为登录、课程、复盘、草稿发布和数据库都依赖后端 API。
 
