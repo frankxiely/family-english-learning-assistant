@@ -974,6 +974,17 @@ p {
   font-weight: 900;
 }
 
+.word-review-line {
+  margin: -2px 0 0;
+  border: 1px solid #ffd591;
+  border-radius: 999px;
+  background: #fff7e6;
+  padding: 4px 10px;
+  color: #ad6800;
+  font-size: var(--font-label);
+  font-weight: 1000;
+}
+
 .word-meaning-line {
   margin: 0;
   color: var(--ink);
@@ -1014,6 +1025,11 @@ p {
   background: #fff1f2;
   color: var(--duo-red);
   transform: translateY(2px) scale(0.98);
+}
+
+.quiz-audio-pill {
+  justify-self: start;
+  margin-bottom: 4px;
 }
 
 .lesson-action-row {
@@ -1547,6 +1563,14 @@ p {
   border-radius: 6px;
   background: #e8fbdc;
   color: var(--duo-green-dark);
+  padding: 1px 4px;
+  font-weight: 950;
+}
+
+.review-word {
+  border-radius: 6px;
+  background: #fff7e6;
+  color: #ad6800;
   padding: 1px 4px;
   font-weight: 950;
 }

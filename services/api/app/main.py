@@ -1,15 +1,25 @@
 from __future__ import annotations
 
+import os
+from contextlib import asynccontextmanager
 from typing import Any
+from urllib.parse import urlsplit
 
 from fastapi import Body, Depends, FastAPI, Header, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .core import (
+    WEB_PUBLIC_DIR,
     authenticate_local_account,
     debug_modules,
     export_learning_log,
     generate_lesson_draft_today,
     generate_lesson_draft_workspace,
+    generate_lesson_asset_audio,
+    generate_lesson_draft_audio,
+    generate_weekly_lesson_draft_workspaces,
+    generate_pending_lesson_drafts_audio,
     get_admin_dashboard,
     get_admin_user_directory,
     get_admin_user_workspace,
@@ -19,6 +29,7 @@ from .core import (
     get_today_lesson,
     get_user_state,
     get_weekly_summary,
+    init_db,
     manually_update_lesson_draft,
     publish_lesson_draft_workspace,
     regenerate_lesson_draft_from_instruction,
@@ -39,7 +50,54 @@ from .core import (
     verify_admin_session,
 )
 
-app = FastAPI(title="家庭英语学习助手 API", version="1.1.0")
+DEFAULT_CORS_ORIGINS = (
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+    "http://127.0.0.1:4173",
+    "http://localhost:4173",
+)
+
+
+def env_flag(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def configured_cors_origins() -> list[str]:
+    raw = os.environ.get("MOMO_CORS_ORIGINS", "").strip()
+    if not raw:
+        return list(DEFAULT_CORS_ORIGINS)
+    origins = []
+    for origin in raw.split(","):
+        value = origin.strip().rstrip("/")
+        if not value:
+            continue
+        parsed = urlsplit(value)
+        if parsed.scheme and parsed.netloc:
+            value = f"{parsed.scheme}://{parsed.netloc}"
+        origins.append(value)
+    return origins or list(DEFAULT_CORS_ORIGINS)
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    init_db(seed_test_data=env_flag("MOMO_AUTO_SEED_TEST_DATA"))
+    yield
+
+
+app = FastAPI(title="家庭英语学习助手 API", version="1.1.0", lifespan=lifespan)
+
+cors_origins = configured_cors_origins()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_credentials="*" not in cors_origins,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+generated_public_dir = WEB_PUBLIC_DIR / "generated"
+generated_public_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/generated", StaticFiles(directory=generated_public_dir), name="generated")
 
 
 def require_admin_session(authorization: str | None = Header(default=None)) -> dict[str, Any]:
@@ -223,6 +281,25 @@ def admin_generate_draft(
     return {"status": "pending_publish", "draft_id": draft_id}
 
 
+@app.post("/api/admin/drafts/generate-week")
+def admin_generate_weekly_drafts(
+    payload: dict[str, Any] = Body(default_factory=dict),
+    _admin: dict[str, Any] = Depends(require_admin_session),
+) -> dict[str, Any]:
+    try:
+        drafts = generate_weekly_lesson_draft_workspaces(
+            user_id=payload.get("user_id", "user_mom"),
+            start_date=payload.get("start_date") or payload.get("lesson_date") or today_iso(),
+            days=int(payload.get("days") or 7),
+            admin_instruction=payload.get("admin_instruction"),
+            admin_note=payload.get("admin_note"),
+            admin_id=str(_admin["login_account"]),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"status": "pending_publish", "drafts": drafts}
+
+
 @app.put("/api/admin/drafts/{draft_id}/note")
 def admin_update_draft_note(
     draft_id: str,
@@ -276,6 +353,39 @@ def admin_undo_draft(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@app.post("/api/admin/drafts/{draft_id}/audio")
+def admin_generate_draft_audio(
+    draft_id: str,
+    payload: dict[str, Any] = Body(default_factory=dict),
+    _admin: dict[str, Any] = Depends(require_admin_session),
+) -> dict[str, Any]:
+    try:
+        return generate_lesson_draft_audio(
+            draft_id,
+            str(_admin["login_account"]),
+            force=bool(payload.get("force", False)),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/api/admin/drafts/audio-batch")
+def admin_generate_pending_drafts_audio(
+    payload: dict[str, Any] = Body(default_factory=dict),
+    _admin: dict[str, Any] = Depends(require_admin_session),
+) -> dict[str, Any]:
+    try:
+        return generate_pending_lesson_drafts_audio(
+            user_id=payload.get("user_id", "user_mom"),
+            start_date=payload.get("start_date") or payload.get("lesson_date") or today_iso(),
+            days=int(payload.get("days") or 7),
+            admin_id=str(_admin["login_account"]),
+            force=bool(payload.get("force", False)),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.post("/api/admin/drafts/{draft_id}/publish")
 def admin_publish_draft(
     draft_id: str,
@@ -287,6 +397,22 @@ def admin_publish_draft(
             draft_id,
             str(_admin["login_account"]),
             payload.get("reason", "admin_publish_draft"),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/api/admin/lessons/{lesson_asset_id}/audio")
+def admin_generate_lesson_audio(
+    lesson_asset_id: str,
+    payload: dict[str, Any] = Body(default_factory=dict),
+    _admin: dict[str, Any] = Depends(require_admin_session),
+) -> dict[str, Any]:
+    try:
+        return generate_lesson_asset_audio(
+            lesson_asset_id,
+            str(_admin["login_account"]),
+            force=bool(payload.get("force", False)),
         )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

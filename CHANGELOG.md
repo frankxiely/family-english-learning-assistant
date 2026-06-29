@@ -62,6 +62,17 @@
 - 后端 lesson 生成器接入 `starter_phonics_route.v1.json`，按学习天数选择内容路线项，并写入 `route_basis`、`progress_summary`、`source_basis` 和 `audio_assets`。
 - 新增用户级路线图 `data/teaching_knowledge/user_routes/vi_route.v1.json` 和 `frank_route.v1.json`；Vi 走零基础音标路线，Frank 走 B2-C1 高阶诊断与商务输出路线。
 - 后端 lesson 生成器和学习进度 API 优先读取用户级路线图，路线项可直接指定词汇、课文、知识卡、测试题和进度页摘要。
+- 重设计 Vi 首周课程路线：从零散音标对话改为 7 天教材式故事单元，包含场景钩子、4-6 句短课文、知识卡、测试题和首周复盘。
+- 新增管理员“一周草稿”生成能力：`POST /api/admin/drafts/generate-week` 会按学习天数加周内偏移生成未来 7 天未发布 lesson JSON 草稿。
+- 新增复习词混入机制：`review_queue` 中的旧词会按周分配进单词、课文、知识讲解和测试，并用 `learning_role=review` 与新词区分。
+- 学习端新增复习词视觉标记，单词页和课文高亮能区分“新词”和“复习词”。
+- 二次修正 Vi 首周课程质量：知识讲解改为发音、词义、句型和场景用法；课文改为自然微对话；测试改为听音选词、词义、填空、句意理解和场景选择。
+- lesson JSON 测试题支持 `question_type`、`audio_text`、`audio_ref` 和 `checks`；前端测试页支持播放听音题音频。
+- 前端音频播放改为优先使用 `audio_assets.local_url` 缓存音频，缺失时再回退 Web Speech；后端音频资产增加 `style`、`emphasis_words` 和 `pause_after_ms`。
+- 新增后台本地 TTS 生成：管理台草稿可一键生成 WAV 音频，也可批量生成未来 7 天待发布草稿音频；后端使用 macOS `say` + `afconvert`，并写回 `audio_assets.local_url`。
+- 课文正常/慢速整段播放改为优先按逐句缓存音频顺序播放，听音题也优先播放后台生成的题目音频。
+- 新增公开网页部署能力：前端支持 `VITE_API_BASE_URL` 和 GitHub Pages base path，后端支持 CORS、启动初始化和 `/generated` 静态资源服务。
+- 新增 GitHub Pages Actions、后端 Dockerfile、Render Blueprint 和公开部署说明，支持“GitHub Pages 前端 + Render API + SQLite 持久化磁盘”的访问方式。
 - 为本地库发布 Vi 与 Frank 的 2026-06-28 第一课 lesson JSON：Vi 为“音标第一课：/iː/ 和 /ɪ/”，Frank 为“高阶诊断课：商务自我介绍与发音校准”。
 - 新增后端 pytest，覆盖内容知识库路线生成、lesson JSON 标准化、发布和学习提交。
 - 新增 Playwright 手机端 E2E，覆盖登录、今日学习、单词掌握、课文、知识讲解、测试、完成和进入“我的”页面。

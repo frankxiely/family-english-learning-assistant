@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#fff4df"/>
+  <circle cx="256" cy="236" r="142" fill="#ff9600" opacity="0.95"/>
+  <circle cx="206" cy="174" r="30" fill="#fff" opacity="0.35"/>
+  <path d="M156 342c42 38 158 38 200 0" fill="none" stroke="#fff" stroke-width="24" stroke-linecap="round" opacity="0.9"/>
+  <text x="256" y="286" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="154" font-weight="800" fill="#fff">B</text>
+  <text x="256" y="424" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="44" font-weight="700" fill="#1f2937">bag</text>
+</svg>

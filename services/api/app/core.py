@@ -7,7 +7,9 @@ import json
 import os
 import re
 import secrets
+import shutil
 import sqlite3
+import subprocess
 import time
 import uuid
 from datetime import date, datetime, timedelta
@@ -38,7 +40,9 @@ USER_ROUTE_PATHS = {
 }
 WEB_PUBLIC_DIR = ROOT / "apps" / "web" / "public"
 WORD_IMAGE_DIR = WEB_PUBLIC_DIR / "generated" / "word_images"
+AUDIO_DIR = WEB_PUBLIC_DIR / "generated" / "audio"
 SESSION_TTL_HOURS = 12
+LOCAL_TTS_PROVIDER = "macos_say_tts"
 
 STARTER_WORD_BANK: dict[str, dict[str, Any]] = {
     "see": {"phonetic": "/siː/", "part_of_speech": "verb", "part_of_speech_zh": "动词", "meaning": "看见", "needs_image": True},
@@ -63,6 +67,15 @@ STARTER_WORD_BANK: dict[str, dict[str, Any]] = {
     "like": {"phonetic": "/laɪk/", "part_of_speech": "verb", "part_of_speech_zh": "动词", "meaning": "喜欢", "needs_image": True},
     "bank": {"phonetic": "/bæŋk/", "part_of_speech": "noun", "part_of_speech_zh": "名词", "meaning": "银行", "needs_image": True},
     "please": {"phonetic": "/pliːz/", "part_of_speech": "interjection", "part_of_speech_zh": "礼貌用语", "meaning": "请", "needs_image": False},
+    "hello": {"phonetic": "/həˈloʊ/", "part_of_speech": "interjection", "part_of_speech_zh": "感叹词", "meaning": "你好", "needs_image": False},
+    "nice": {"phonetic": "/naɪs/", "part_of_speech": "adjective", "part_of_speech_zh": "形容词", "meaning": "令人愉快的", "needs_image": False},
+    "meet": {"phonetic": "/miːt/", "part_of_speech": "verb", "part_of_speech_zh": "动词", "meaning": "遇见", "needs_image": True},
+    "am": {"phonetic": "/æm/", "part_of_speech": "verb", "part_of_speech_zh": "动词", "meaning": "是", "needs_image": False},
+    "banker": {"phonetic": "/ˈbæŋkər/", "part_of_speech": "noun", "part_of_speech_zh": "名词", "meaning": "银行从业者", "needs_image": True},
+    "welcome": {"phonetic": "/ˈwelkəm/", "part_of_speech": "verb", "part_of_speech_zh": "动词", "meaning": "欢迎", "needs_image": True},
+    "help": {"phonetic": "/help/", "part_of_speech": "verb", "part_of_speech_zh": "动词", "meaning": "帮助", "needs_image": True},
+    "card": {"phonetic": "/kɑːrd/", "part_of_speech": "noun", "part_of_speech_zh": "名词", "meaning": "卡片；银行卡", "needs_image": True},
+    "bus": {"phonetic": "/bʌs/", "part_of_speech": "noun", "part_of_speech_zh": "名词", "meaning": "公交车", "needs_image": True},
     "today": {"phonetic": "/təˈdeɪ/", "part_of_speech": "noun", "part_of_speech_zh": "名词", "meaning": "今天", "needs_image": False},
     "tea": {"phonetic": "/tiː/", "part_of_speech": "noun", "part_of_speech_zh": "名词", "meaning": "茶", "needs_image": True},
     "desk": {"phonetic": "/desk/", "part_of_speech": "noun", "part_of_speech_zh": "名词", "meaning": "书桌", "needs_image": True},
@@ -205,7 +218,11 @@ def pick_content_route_item(context: dict[str, Any]) -> dict[str, Any]:
         learning_days = int(status.get("learning_days") or 0)
     except (TypeError, ValueError):
         learning_days = 0
-    index = max(0, min(learning_days, len(route_items) - 1))
+    try:
+        route_index_offset = int(context.get("content_route_index_offset") or 0)
+    except (TypeError, ValueError):
+        route_index_offset = 0
+    index = max(0, min(learning_days + max(0, route_index_offset), len(route_items) - 1))
     item = dict(route_items[index])
     item["daily_constraints"] = route_data.get("daily_constraints") or {}
     item["stage"] = route_data.get("stage") or {}
@@ -231,7 +248,17 @@ def build_vocabulary_item(word: str, phonics_focus: list[str]) -> dict[str, Any]
         "needs_image": needs_image,
         "image_hint": f"simple clear illustration of {word}" if needs_image else None,
         "audio_text": word,
+        "learning_role": "new",
+        "is_review": False,
     }
+
+
+def mark_review_vocabulary_item(item: dict[str, Any], reason: str = "scheduled_review") -> dict[str, Any]:
+    item["learning_role"] = "review"
+    item["is_review"] = True
+    item["review_reason"] = reason
+    item["cefr_level"] = item.get("cefr_level") or "pre_a1"
+    return item
 
 
 def build_route_vocabulary(content_route_item: dict[str, Any], phonics_focus: list[str]) -> list[dict[str, Any]]:
@@ -255,11 +282,56 @@ def build_route_vocabulary(content_route_item: dict[str, Any], phonics_focus: li
             merged["needs_image"] = bool(merged.get("needs_image", base["needs_image"]))
             if merged.get("needs_image") and not merged.get("image_hint"):
                 merged["image_hint"] = f"simple clear illustration of {merged['word']}"
+            merged["learning_role"] = merged.get("learning_role") or "new"
+            merged["is_review"] = bool(merged.get("is_review") or merged["learning_role"] == "review")
             result.append(merged)
         return result
     new_words = [str(item) for item in content_route_item.get("new_words") or []]
     review_words = [str(item) for item in content_route_item.get("review_words") or []]
-    return [build_vocabulary_item(word, phonics_focus) for word in (new_words or review_words[:4])]
+    words = new_words or review_words[:4]
+    result = [build_vocabulary_item(word, phonics_focus) for word in words]
+    if not new_words and review_words:
+        result = [mark_review_vocabulary_item(item, "route_review_day") for item in result]
+    return result
+
+
+def dedupe_words(words: list[str]) -> list[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for word in words:
+        cleaned = str(word).strip()
+        key = cleaned.lower()
+        if not cleaned or key in seen:
+            continue
+        seen.add(key)
+        result.append(cleaned)
+    return result
+
+
+def pick_review_words(context: dict[str, Any], max_items: int = 3) -> list[str]:
+    words: list[str] = []
+    for item in context.get("review_queue", []):
+        if item.get("item_type") != "word":
+            continue
+        words.append(str(item.get("item_id") or "").replace("word_", ""))
+    unique_words = dedupe_words(words)
+    if not unique_words:
+        return []
+    try:
+        offset = int(context.get("content_route_index_offset") or 0)
+    except (TypeError, ValueError):
+        offset = 0
+    day_slot = max(0, offset) % 7
+    selected = [
+        word
+        for index, word in enumerate(unique_words)
+        if index % 7 == day_slot
+    ]
+    if not selected and max(0, offset) < len(unique_words):
+        selected = [unique_words[max(0, offset)]]
+    if not selected and offset == 0:
+        selected = unique_words[:max_items]
+    return selected[:max_items]
 
 
 def build_audio_asset(
@@ -269,8 +341,13 @@ def build_audio_asset(
     *,
     role: str | None = None,
     rate: float = 0.88,
+    style: str = "neutral",
+    emphasis_words: list[str] | None = None,
+    pause_after_ms: int | None = None,
 ) -> dict[str, Any]:
-    content_hash = hashlib.sha256(f"{target_type}:{target_ref}:{text}:{role}:{rate}".encode("utf-8")).hexdigest()[:16]
+    content_hash = hashlib.sha256(
+        f"{target_type}:{target_ref}:{text}:{role}:{rate}:{style}".encode("utf-8")
+    ).hexdigest()[:16]
     return {
         "audio_id": f"audio_{asset_slug(target_type)}_{asset_slug(target_ref)}_{content_hash}",
         "target_type": target_type,
@@ -282,7 +359,9 @@ def build_audio_asset(
         "locale": "en-US",
         "rate": rate,
         "pitch": 1,
-        "style": "neutral",
+        "style": style,
+        "emphasis_words": emphasis_words or [],
+        "pause_after_ms": pause_after_ms,
         "local_url": None,
         "content_hash": content_hash,
         "duration_ms": None,
@@ -306,6 +385,14 @@ def build_kb_passage(content_route_item: dict[str, Any], vocabulary: list[dict[s
                 f"{line.get('role')}_{text}",
                 text,
                 role=line.get("role"),
+            )["audio_id"]
+            line["slow_audio_ref"] = line.get("slow_audio_ref") or build_audio_asset(
+                "passage_line_slow",
+                f"{line.get('role')}_{text}",
+                text,
+                role=line.get("role"),
+                rate=0.68,
+                style="slow_clear",
             )["audio_id"]
         passage["lines"] = lines
         passage["passage_type"] = passage.get("passage_type") or "dialogue"
@@ -341,6 +428,14 @@ def build_kb_passage(content_route_item: dict[str, Any], vocabulary: list[dict[s
         line["audio_text"] = line["text"]
         line["highlight_words"] = [word for word in words if re.search(rf"\b{re.escape(word)}\b", line["text"], re.I)]
         line["audio_ref"] = build_audio_asset("passage_line", f"{line['role']}_{line['text']}", line["text"], role=line["role"])["audio_id"]
+        line["slow_audio_ref"] = build_audio_asset(
+            "passage_line_slow",
+            f"{line['role']}_{line['text']}",
+            line["text"],
+            role=line["role"],
+            rate=0.68,
+            style="slow_clear",
+        )["audio_id"]
     return {
         "title": second.rstrip(".") if len(second.split()) <= 5 else str(content_route_item.get("passage_module_label") or "今日对话"),
         "passage_type": "dialogue",
@@ -379,13 +474,54 @@ def build_kb_audio_assets(template: dict[str, Any]) -> list[dict[str, Any]]:
                     rate=0.68,
                 )
             )
+    for question in (template.get("quiz") or {}).get("questions", []):
+        audio_text = str(question.get("audio_text") or "")
+        question_id = str(question.get("question_id") or question.get("prompt") or "")
+        if audio_text and question_id:
+            assets.append(
+                build_audio_asset(
+                    "quiz_question",
+                    f"quiz_question_{question_id}",
+                    audio_text,
+                    rate=0.86,
+                    style="quiz_prompt",
+                    emphasis_words=[audio_text],
+                )
+            )
     return assets
 
 
-def build_kb_route_template(content_route_item: dict[str, Any], review_text: str) -> dict[str, Any]:
+def build_kb_route_template(
+    content_route_item: dict[str, Any],
+    review_text: str,
+    scheduled_review_words: list[str] | None = None,
+) -> dict[str, Any]:
     phonics_focus = [str(item) for item in content_route_item.get("phonics_focus") or []]
-    review_words = [str(item) for item in content_route_item.get("review_words") or []]
+    route_review_words = [str(item) for item in content_route_item.get("review_words") or []]
+    scheduled_review_words = scheduled_review_words or []
+    review_words = dedupe_words(route_review_words + scheduled_review_words)
     vocabulary = build_route_vocabulary(content_route_item, phonics_focus)
+    existing_words = {str(item.get("word") or "").lower() for item in vocabulary}
+    has_new_words = bool(content_route_item.get("new_words") or content_route_item.get("vocabulary"))
+    scheduled_review_word_keys = {word.lower() for word in scheduled_review_words}
+    route_review_word_keys = {word.lower() for word in route_review_words}
+    for item in vocabulary:
+        word_key = str(item.get("word") or "").lower()
+        if word_key in scheduled_review_word_keys or (
+            not has_new_words and word_key in route_review_word_keys
+        ):
+            mark_review_vocabulary_item(item, "mixed_review")
+    extra_review_limit = max(0, 6 - len(vocabulary))
+    for word in review_words:
+        if extra_review_limit <= 0:
+            break
+        if word.lower() in existing_words:
+            continue
+        review_item = build_vocabulary_item(word, phonics_focus)
+        mark_review_vocabulary_item(review_item, "weekly_review_queue")
+        vocabulary.append(review_item)
+        existing_words.add(word.lower())
+        extra_review_limit -= 1
     focus_text = " 和 ".join(phonics_focus) if phonics_focus else str(content_route_item.get("main_knowledge_label") or "今日知识点")
     route_label = str(content_route_item.get("route_module_label") or "音标和基础拼读")
     passage_label = str(content_route_item.get("passage_module_label") or "今日对话")
@@ -407,13 +543,16 @@ def build_kb_route_template(content_route_item: dict[str, Any], review_text: str
             f"4. 最后把这些表达放进“{passage_label}”里读出来。",
         ]
     if review_words:
-        default_content_lines.append(f"5. 今天主要复习 {', '.join(review_words[:4])}，不增加太多新负担。")
+        default_content_lines.append(f"5. 复习回顾：{', '.join(review_words[:4])} 是旧内容，今天只在单词、课文和测试里穿插出现。")
     content_lines = [str(line) for line in content_route_item.get("knowledge_cards") or default_content_lines]
+    if review_words and content_route_item.get("knowledge_cards"):
+        content_lines.append(f"复习回顾：{', '.join(review_words[:4])} 是旧内容，看到“复习词”标记时先认读，再回到今天的新知识。")
     quiz_words = vocabulary[:3] or [build_vocabulary_item("see", phonics_focus)]
     provided_questions = content_route_item.get("quiz_questions") or []
     questions = [
         {
             "question_id": str(question.get("question_id") or f"{content_route_item.get('route_item_id')}_q{index}"),
+            "question_type": str(question.get("question_type") or "multiple_choice"),
             "prompt": str(question.get("prompt") or ""),
             "options": [str(option) for option in question.get("options") or []],
             "answer": str(question.get("answer") or ""),
@@ -421,6 +560,8 @@ def build_kb_route_template(content_route_item: dict[str, Any], review_text: str
             "related_knowledge_id": question.get("related_knowledge_id") or content_route_item.get("knowledge_id"),
             "related_word_ids": question.get("related_word_ids") or [],
             "error_tag": question.get("error_tag") or "route_quiz",
+            "audio_text": question.get("audio_text"),
+            "checks": question.get("checks") or [],
         }
         for index, question in enumerate(provided_questions, start=1)
         if isinstance(question, dict)
@@ -456,12 +597,25 @@ def build_kb_route_template(content_route_item: dict[str, Any], review_text: str
             "error_tag": "output_clarity" if not phonics_focus else "syllable_awareness",
         },
     ]
+    for question in questions:
+        audio_text = str(question.get("audio_text") or "")
+        if audio_text and not question.get("audio_ref"):
+            question["audio_ref"] = build_audio_asset(
+                "quiz_question",
+                f"quiz_question_{question['question_id']}",
+                audio_text,
+                rate=0.86,
+                style="quiz_prompt",
+                emphasis_words=[audio_text],
+            )["audio_id"]
     objectives = [str(item) for item in content_route_item.get("objectives") or []] or [
         f"认识 {focus_text} 的声音特点",
         f"能读出 {', '.join(item['word'] for item in vocabulary) or '复习词'}",
         f"能完成“{passage_label}”短对话跟读",
         f"完成 {len(questions)} 道测试题",
     ]
+    if review_words and not any("复习" in item or "回顾" in item for item in objectives):
+        objectives.append(f"在新课里回顾 {', '.join(review_words[:3])}")
     theme = str(content_route_item.get("theme") or f"{route_label}：{focus_text}")
     return {
         "theme": theme,
@@ -543,6 +697,276 @@ def ensure_word_image_asset(conn: sqlite3.Connection, item: dict[str, Any]) -> s
     )
     item["image_url"] = image_url
     return image_url
+
+
+def public_url_for_audio_path(path: Path) -> str:
+    return f"/{path.relative_to(WEB_PUBLIC_DIR).as_posix()}"
+
+
+def local_audio_path_for_asset(lesson_json: dict[str, Any], asset: dict[str, Any]) -> Path:
+    user_id = asset_slug(str(lesson_json.get("user_id") or "user"))
+    lesson_date = asset_slug(str(lesson_json.get("lesson_date") or today_iso()))
+    target_type = asset_slug(str(asset.get("target_type") or "audio"))
+    audio_id = asset_slug(str(asset.get("audio_id") or new_id("audio")))
+    return AUDIO_DIR / user_id / lesson_date / target_type / f"{audio_id}.wav"
+
+
+def tts_wpm_for_asset(asset: dict[str, Any]) -> int:
+    style = str(asset.get("style") or "")
+    target_type = str(asset.get("target_type") or "")
+    rate = float(asset.get("rate") or 0.88)
+    if "slow" in target_type or style == "slow_clear":
+        return 122
+    if style == "quiz_prompt":
+        return 142
+    if target_type == "word":
+        return 132
+    return max(120, min(185, int(178 * rate)))
+
+
+def tts_voice_for_asset(asset: dict[str, Any]) -> str:
+    configured = os.environ.get("MOMO_TTS_VOICE")
+    if configured:
+        return configured
+    return "Samantha"
+
+
+def synthesize_local_tts_file(asset: dict[str, Any], output_path: Path, voice: str, wpm: int) -> None:
+    if not shutil.which("say"):
+        raise RuntimeError("macOS say command is not available")
+    if not shutil.which("afconvert"):
+        raise RuntimeError("macOS afconvert command is not available")
+    text = str(asset.get("text") or "").strip()
+    if not text:
+        raise RuntimeError("audio asset text is empty")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_aiff = output_path.with_suffix(".aiff")
+    say_cmd = ["say", "-v", voice, "-r", str(wpm), "-o", str(tmp_aiff), text]
+    say_result = subprocess.run(say_cmd, capture_output=True, text=True, check=False)
+    if say_result.returncode != 0:
+        # Some systems do not have premium voices installed; Samantha is the reliable fallback.
+        fallback_cmd = ["say", "-v", "Samantha", "-r", str(wpm), "-o", str(tmp_aiff), text]
+        say_result = subprocess.run(fallback_cmd, capture_output=True, text=True, check=False)
+        if say_result.returncode != 0:
+            raise RuntimeError((say_result.stderr or say_result.stdout or "say failed").strip())
+        voice = "Samantha"
+    convert_cmd = ["afconvert", "-f", "WAVE", "-d", "LEI16", str(tmp_aiff), str(output_path)]
+    convert_result = subprocess.run(convert_cmd, capture_output=True, text=True, check=False)
+    tmp_aiff.unlink(missing_ok=True)
+    if convert_result.returncode != 0:
+        raise RuntimeError((convert_result.stderr or convert_result.stdout or "afconvert failed").strip())
+    if not output_path.exists() or output_path.stat().st_size <= 4096:
+        raise RuntimeError("generated audio file is empty")
+
+
+def generate_local_tts_for_lesson_json(
+    lesson_json: dict[str, Any],
+    *,
+    force: bool = False,
+    admin_id: str = "admin_xly",
+) -> dict[str, Any]:
+    init_db()
+    audio_assets = lesson_json.get("audio_assets") or []
+    generated: list[dict[str, Any]] = []
+    skipped: list[dict[str, Any]] = []
+    errors: list[dict[str, str]] = []
+    with connect() as conn:
+        for asset in audio_assets:
+            if not isinstance(asset, dict):
+                continue
+            audio_id = str(asset.get("audio_id") or "")
+            text = str(asset.get("text") or "").strip()
+            if not audio_id or not text:
+                continue
+            output_path = local_audio_path_for_asset(lesson_json, asset)
+            local_url = public_url_for_audio_path(output_path)
+            if output_path.exists() and not force:
+                asset["local_url"] = local_url
+                asset["provider"] = LOCAL_TTS_PROVIDER
+                skipped.append({"audio_id": audio_id, "local_url": local_url})
+            else:
+                voice = tts_voice_for_asset(asset)
+                wpm = tts_wpm_for_asset(asset)
+                try:
+                    synthesize_local_tts_file(asset, output_path, voice, wpm)
+                except Exception as exc:
+                    errors.append({"audio_id": audio_id, "error": str(exc)})
+                    continue
+                asset["provider"] = LOCAL_TTS_PROVIDER
+                asset["fallback_provider"] = "web_speech_runtime"
+                asset["voice_key"] = voice
+                asset["locale"] = asset.get("locale") or "en-US"
+                asset["local_url"] = local_url
+                asset["content_hash"] = hashlib.sha256(output_path.read_bytes()).hexdigest()[:16]
+                asset["generated_at"] = datetime.now().isoformat(timespec="seconds")
+                generated.append({"audio_id": audio_id, "local_url": local_url})
+            conn.execute(
+                """
+                INSERT INTO asset_sources (
+                  asset_id, asset_type, local_path, source_name, license, generation_params_json
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(asset_id) DO UPDATE SET
+                  asset_type = excluded.asset_type,
+                  local_path = excluded.local_path,
+                  source_name = excluded.source_name,
+                  license = excluded.license,
+                  generation_params_json = excluded.generation_params_json
+                """,
+                (
+                    audio_id,
+                    "audio",
+                    path_for_record(output_path),
+                    LOCAL_TTS_PROVIDER,
+                    "local-generated",
+                    json.dumps(
+                        {
+                            "text": text,
+                            "voice_key": asset.get("voice_key"),
+                            "rate": asset.get("rate"),
+                            "style": asset.get("style"),
+                            "emphasis_words": asset.get("emphasis_words") or [],
+                        },
+                        ensure_ascii=False,
+                    ),
+                ),
+            )
+        log_admin_adjustment(
+            conn,
+            admin_id,
+            "lesson_audio",
+            str(lesson_json.get("lesson_asset_id") or lesson_json.get("lesson_date") or "unknown"),
+            "generate_local_tts",
+            {"generated": len(generated), "skipped": len(skipped), "errors": errors[:5]},
+        )
+        log_debug(
+            conn,
+            "audio",
+            "info" if not errors else "warn",
+            "local tts generated for lesson",
+            {
+                "lesson_asset_id": lesson_json.get("lesson_asset_id"),
+                "generated": len(generated),
+                "skipped": len(skipped),
+                "errors": errors[:5],
+            },
+        )
+        conn.commit()
+    return {
+        "status": "ok" if not errors else "partial",
+        "generated_count": len(generated),
+        "skipped_count": len(skipped),
+        "error_count": len(errors),
+        "generated": generated,
+        "skipped": skipped,
+        "errors": errors,
+        "lesson_json": lesson_json,
+    }
+
+
+def generate_lesson_draft_audio(
+    draft_id: str,
+    admin_id: str = "admin_xly",
+    *,
+    force: bool = False,
+) -> dict[str, Any]:
+    init_db()
+    draft = get_lesson_draft(draft_id)
+    if not draft:
+        raise ValueError(f"lesson draft not found: {draft_id}")
+    lesson_json = draft["draft_json"]
+    result = generate_local_tts_for_lesson_json(lesson_json, force=force, admin_id=admin_id)
+    with connect() as conn:
+        snapshot_lesson_draft(conn, draft_id, "generate_audio", admin_id)
+        conn.execute(
+            """
+            UPDATE lesson_draft_workspaces
+            SET draft_json = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE draft_id = ?
+            """,
+            (json.dumps(lesson_json, ensure_ascii=False, sort_keys=True), draft_id),
+        )
+        conn.commit()
+    result.pop("lesson_json", None)
+    result["draft"] = get_lesson_draft(draft_id)
+    return result
+
+
+def generate_pending_lesson_drafts_audio(
+    user_id: str = "user_mom",
+    start_date: str | None = None,
+    days: int = 7,
+    admin_id: str = "admin_xly",
+    *,
+    force: bool = False,
+) -> dict[str, Any]:
+    init_db()
+    start = date.fromisoformat(start_date or today_iso())
+    bounded_days = max(1, min(int(days or 7), 14))
+    end = (start + timedelta(days=bounded_days - 1)).isoformat()
+    with connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT draft_id, lesson_date
+            FROM lesson_draft_workspaces
+            WHERE user_id = ?
+              AND status = 'pending_publish'
+              AND lesson_date BETWEEN ? AND ?
+            ORDER BY lesson_date
+            """,
+            (user_id, start.isoformat(), end),
+        ).fetchall()
+    draft_results: list[dict[str, Any]] = []
+    generated_count = 0
+    skipped_count = 0
+    error_count = 0
+    for row in rows:
+        result = generate_lesson_draft_audio(str(row["draft_id"]), admin_id=admin_id, force=force)
+        draft_results.append(
+            {
+                "draft_id": row["draft_id"],
+                "lesson_date": row["lesson_date"],
+                "status": result.get("status"),
+                "generated_count": result.get("generated_count", 0),
+                "skipped_count": result.get("skipped_count", 0),
+                "error_count": result.get("error_count", 0),
+            }
+        )
+        generated_count += int(result.get("generated_count", 0))
+        skipped_count += int(result.get("skipped_count", 0))
+        error_count += int(result.get("error_count", 0))
+    return {
+        "status": "ok" if error_count == 0 else "partial",
+        "draft_count": len(draft_results),
+        "generated_count": generated_count,
+        "skipped_count": skipped_count,
+        "error_count": error_count,
+        "drafts": draft_results,
+    }
+
+
+def generate_lesson_asset_audio(
+    lesson_asset_id: str,
+    admin_id: str = "admin_xly",
+    *,
+    force: bool = False,
+) -> dict[str, Any]:
+    init_db()
+    with connect() as conn:
+        asset = fetch_lesson_asset(conn, lesson_asset_id)
+        if not asset:
+            raise ValueError(f"lesson asset not found: {lesson_asset_id}")
+        status = str(asset.get("status") or "draft")
+    lesson_json = asset["lesson_json"]
+    result = generate_local_tts_for_lesson_json(lesson_json, force=force, admin_id=admin_id)
+    save_lesson_json(
+        lesson_json,
+        status=status,
+        admin_id=admin_id,
+        revision_reason="local_tts_audio_generation",
+    )
+    result.pop("lesson_json", None)
+    result["lesson_asset_id"] = lesson_asset_id
+    return result
 
 
 def ensure_lesson_runtime_assets(conn: sqlite3.Connection, lesson_json: dict[str, Any]) -> dict[str, Any]:
@@ -1004,17 +1428,8 @@ def build_template_plan(
 ) -> dict[str, Any]:
     route_item = choose_next_route_item(context)
     route_id = route_item.get("route_item_id", "route_001")
-    review_words = []
-    seen_review_words = set()
-    for item in context.get("review_queue", []):
-        if item.get("item_type") != "word":
-            continue
-        word = item["item_id"].replace("word_", "")
-        if word in seen_review_words:
-            continue
-        seen_review_words.add(word)
-        review_words.append(word)
-    review_text = f" 同时复习：{', '.join(review_words[:3])}。" if review_words else ""
+    review_words = pick_review_words(context)
+    review_text = f" 同时穿插复习：{', '.join(review_words[:3])}。" if review_words else ""
 
     templates: dict[str, dict[str, Any]] = {
         "route_000": {
@@ -1372,7 +1787,7 @@ def build_template_plan(
 
     content_route_item = pick_content_route_item(context)
     template = (
-        build_kb_route_template(content_route_item, review_text)
+        build_kb_route_template(content_route_item, review_text, review_words)
         if content_route_item
         else templates.get(route_id, templates["route_001"])
     )
@@ -1441,11 +1856,17 @@ def generate_lesson_plan_json(
     user_id: str,
     lesson_date: str | None = None,
     admin_override: dict[str, Any] | None = None,
+    route_day_offset: int = 0,
 ) -> tuple[str, dict[str, Any]]:
     lesson_date = lesson_date or today_iso()
     start = time.perf_counter()
     with connect() as conn:
         context = build_generation_context(conn, user_id)
+        try:
+            route_offset = max(0, int(route_day_offset or 0))
+        except (TypeError, ValueError):
+            route_offset = 0
+        context["content_route_index_offset"] = route_offset
         admin = get_admin_note(conn, user_id, "lesson_plan", lesson_date)
         if admin_override:
             admin = {**admin, **admin_override}
@@ -1462,6 +1883,7 @@ def generate_lesson_plan_json(
             "status": context.get("status"),
             "route_item": choose_next_route_item(context),
             "content_route_item": pick_content_route_item(context),
+            "content_route_index_offset": context.get("content_route_index_offset"),
             "review_queue": context.get("review_queue"),
             "recent_errors": context.get("recent_errors"),
             "recent_difficulties": context.get("recent_difficulties"),
@@ -1643,6 +2065,7 @@ def generate_lesson_draft_workspace(
     admin_note: str | None = None,
     admin_id: str = "admin_xly",
     action: str = "generate_draft",
+    route_day_offset: int = 0,
 ) -> str:
     lesson_date = lesson_date or today_iso()
     admin_override = {
@@ -1650,13 +2073,40 @@ def generate_lesson_draft_workspace(
         "admin_instruction": admin_instruction,
         "admin_revision_note": None,
     }
-    run_id, plan = generate_lesson_plan_json(user_id, lesson_date, admin_override)
+    run_id, plan = generate_lesson_plan_json(user_id, lesson_date, admin_override, route_day_offset=route_day_offset)
     lesson_json = normalize_lesson_plan(run_id, plan)
     if admin_note is not None:
         lesson_json["admin_note"] = admin_note or None
     if admin_instruction is not None:
         lesson_json["admin_instruction"] = admin_instruction or None
     return save_lesson_draft_workspace(lesson_json, admin_id=admin_id, action=action)
+
+
+def generate_weekly_lesson_draft_workspaces(
+    user_id: str = "user_mom",
+    start_date: str | None = None,
+    days: int = 7,
+    admin_instruction: str | None = None,
+    admin_note: str | None = None,
+    admin_id: str = "admin_xly",
+) -> list[dict[str, str]]:
+    init_db()
+    start = date.fromisoformat(start_date or today_iso())
+    bounded_days = max(1, min(int(days or 7), 14))
+    drafts: list[dict[str, str]] = []
+    for offset in range(bounded_days):
+        lesson_date = (start + timedelta(days=offset)).isoformat()
+        draft_id = generate_lesson_draft_workspace(
+            user_id=user_id,
+            lesson_date=lesson_date,
+            admin_instruction=admin_instruction,
+            admin_note=admin_note,
+            admin_id=admin_id,
+            action="admin_generate_weekly_draft",
+            route_day_offset=offset,
+        )
+        drafts.append({"lesson_date": lesson_date, "draft_id": draft_id})
+    return drafts
 
 
 def get_lesson_draft(draft_id: str) -> dict[str, Any] | None:

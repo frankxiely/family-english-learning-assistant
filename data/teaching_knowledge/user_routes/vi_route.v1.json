@@ -3,7 +3,7 @@
   "route_id": "route_vi_starter_phonics_v1",
   "user_id": "user_mom",
   "display_name": "Vi",
-  "updated_at": "2026-06-28",
+  "updated_at": "2026-06-29",
   "route_source": "admin_manual_v1_1",
   "profile_basis": {
     "age_band": "middle_age",
@@ -22,96 +22,424 @@
   "daily_constraints": {
     "target_minutes": 30,
     "new_word_limit": 4,
+    "review_word_limit": 2,
     "knowledge_point_limit": 1,
     "quiz_count": {
-      "min": 3,
+      "min": 4,
       "max": 5
     }
+  },
+  "weekly_generation_policy": {
+    "default_batch_days": 7,
+    "lesson_design_model": "教材式螺旋单元：场景输入 -> 新词/复习词 -> 自然短课文 -> 知识讲解 -> 检索测试。",
+    "review_strategy": "每次生成一周草稿时，把 review_queue 中的旧词均匀分配到 7 天，作为复习词混入单词、课文、知识卡和测试，不单独增加复习模块。",
+    "quiz_design_model": "每课至少包含听音辨词、词义识别、句子填空、句意理解和场景选择中的 4 类。",
+    "copyright_boundary": "只借鉴成熟教材的课程结构、复现频率和任务类型，不复制外部教材正文、题目、音频或图片。"
   },
   "route_items": [
     {
       "route_item_id": "vi_phonics_001",
       "day_number": 1,
-      "theme": "音标第一课：/iː/ 和 /ɪ/",
+      "theme": "第一周故事：英语课开始",
       "route_module_label": "音标和音节入门",
       "main_knowledge_label": "/iː/ 和 /ɪ/",
-      "passage_module_label": "课堂跟读对话",
+      "passage_module_label": "上班前英语角",
       "level_code": "入门",
       "target_minutes": 30,
       "difficulty": "starter",
       "knowledge_id": "kp_phonics_intro",
       "teaching_knowledge_id": "kb_phonics_001_i_long_i_short",
       "phonics_focus": ["/iː/", "/ɪ/"],
-      "new_words": ["see", "sit", "seat", "it"],
+      "new_words": ["see", "sit", "seat", "please"],
       "vocabulary": [
         {"word": "see", "phonetic": "/siː/", "part_of_speech": "verb", "part_of_speech_zh": "动词", "meaning": "看见", "needs_image": true},
-        {"word": "sit", "phonetic": "/sɪt/", "part_of_speech": "verb", "part_of_speech_zh": "动词", "meaning": "坐", "needs_image": true},
+        {"word": "sit", "phonetic": "/sɪt/", "part_of_speech": "verb", "part_of_speech_zh": "动词", "meaning": "坐下", "needs_image": true},
         {"word": "seat", "phonetic": "/siːt/", "part_of_speech": "noun", "part_of_speech_zh": "名词", "meaning": "座位", "needs_image": true},
-        {"word": "it", "phonetic": "/ɪt/", "part_of_speech": "pronoun", "part_of_speech_zh": "代词", "meaning": "它", "needs_image": false}
+        {"word": "please", "phonetic": "/pliːz/", "part_of_speech": "interjection", "part_of_speech_zh": "礼貌用语", "meaning": "请", "needs_image": false}
       ],
       "objectives": [
-        "能听出 /iː/ 和 /ɪ/ 的长短区别",
-        "能读出 see、sit、seat、it",
-        "能跟读 I see it. 和 Sit on the seat.",
-        "完成 3 道基础测试题"
+        "能听出 see / seat 里的 /iː/ 和 sit 里的 /ɪ/",
+        "能说出 see、sit、seat、please 的核心意思",
+        "能理解 Please sit here. 和 I can see it.",
+        "完成听音、词义、填空和句意理解测试"
       ],
-      "preview": "今天只学一组声音：/iː/ 拉长，/ɪ/ 短促。先听清，再读顺。",
-      "knowledge_title": "音标第一课：/iː/ 和 /ɪ/",
+      "preview": "今天从英语角入座开始。只学 4 个词和 2 个短句：Please sit here. I can see it.",
+      "knowledge_title": "今天讲什么：长短元音、4 个词、2 个短句",
       "knowledge_cards": [
-        "1. /iː/ 是长音，嘴角向两边拉，声音要拉长，例如 see 和 seat。",
-        "2. /ɪ/ 是短音，嘴巴更放松，声音短促，例如 sit 和 it。",
-        "3. 音节里通常有一个核心元音。今天先找出单词里的核心声音。",
-        "4. 读 seat 时要听到长音 /iː/，读 sit 时不要拖长。"
+        "1. 发音：/iː/ 是长音，声音拉长；see /siː/ 和 seat /siːt/ 都有这个音。",
+        "2. 发音：/ɪ/ 是短音，声音短促；sit /sɪt/ 中间就是这个音，不要读成长音。",
+        "3. 单词：see 是“看见”，sit 是“坐下”，seat 是“座位”，please 是礼貌地说“请”。",
+        "4. 句型：Please + 动词，可以礼貌地请别人做事。Please sit here. 就是“请坐这里”。",
+        "5. 句型：I can see it. 先整体记成“我能看见它”。can 表示“能”，it 指前面提到的东西。"
       ],
       "passage": {
-        "title": "Sit on the seat",
+        "title": "Please sit here",
         "passage_type": "dialogue",
         "lines": [
-          {"role": "Teacher", "text": "I see it.", "translation": "我看见它。"},
-          {"role": "Vi", "text": "I see it.", "translation": "我看见它。"},
-          {"role": "Teacher", "text": "Sit on the seat.", "translation": "坐在座位上。"},
-          {"role": "Vi", "text": "Sit on the seat.", "translation": "坐在座位上。"}
+          {"role": "Teacher", "text": "Hi, Vi. Please sit here.", "translation": "嗨，Vi。请坐这里。"},
+          {"role": "Vi", "text": "Thank you.", "translation": "谢谢。"},
+          {"role": "Teacher", "text": "Can you see the screen?", "translation": "你能看见屏幕吗？"},
+          {"role": "Vi", "text": "Yes, I can see it.", "translation": "可以，我能看见。"},
+          {"role": "Teacher", "text": "This is your seat.", "translation": "这是你的座位。"},
+          {"role": "Vi", "text": "OK. I see.", "translation": "好的。我明白了。"}
         ],
         "difficult_words": [
-          {"word": "on", "meaning": "在……上"},
-          {"word": "the", "meaning": "这个；那个"}
+          {"word": "hi", "meaning": "嗨；你好"},
+          {"word": "here", "meaning": "这里"},
+          {"word": "thank you", "meaning": "谢谢"},
+          {"word": "can", "meaning": "能；可以"},
+          {"word": "screen", "meaning": "屏幕"},
+          {"word": "this", "meaning": "这；这个"},
+          {"word": "your", "meaning": "你的"},
+          {"word": "OK", "meaning": "好的"}
         ]
       },
       "quiz_questions": [
-        {
-          "question_id": "vi_phonics_001_q1",
-          "prompt": "今天主要练习哪一组声音？",
-          "options": ["/iː/ 和 /ɪ/", "/p/ 和 /b/", "长篇阅读"],
-          "answer": "/iː/ 和 /ɪ/",
-          "explanation": "今天只集中听辨 /iː/ 和 /ɪ/。",
-          "error_tag": "phonics_focus"
-        },
-        {
-          "question_id": "vi_phonics_001_q2",
-          "prompt": "see 的核心意思是？",
-          "options": ["看见", "座位", "今天"],
-          "answer": "看见",
-          "explanation": "see 是动词，今天只记“看见”。",
-          "related_word_ids": ["word_see"],
-          "error_tag": "word_meaning"
-        },
-        {
-          "question_id": "vi_phonics_001_q3",
-          "prompt": "/iː/ 后面的 ː 表示什么？",
-          "options": ["声音要拉长", "声音要变轻", "这是中文拼音"],
-          "answer": "声音要拉长",
-          "explanation": "/iː/ 是长音，读的时候要比 /ɪ/ 更长。",
-          "error_tag": "long_vowel_mark"
-        }
+        {"question_id": "vi_phonics_001_q1", "question_type": "sound_choice", "prompt": "听音，选择你听到的词。", "audio_text": "sit", "options": ["see", "sit", "seat"], "answer": "sit", "explanation": "sit /sɪt/ 是短 /ɪ/，声音短。", "related_word_ids": ["word_sit"], "checks": ["pronunciation_discrimination"], "error_tag": "listen_word_sit"},
+        {"question_id": "vi_phonics_001_q2", "question_type": "meaning_choice", "prompt": "see 的核心意思是？", "options": ["看见", "坐下", "座位"], "answer": "看见", "explanation": "see 是动词，表示“看见”。", "related_word_ids": ["word_see"], "checks": ["word_meaning"], "error_tag": "word_meaning"},
+        {"question_id": "vi_phonics_001_q3", "question_type": "cloze", "prompt": "Please ___ here. 空格里最合适的是？", "options": ["sit", "see", "seat"], "answer": "sit", "explanation": "Please sit here. 是“请坐这里”。", "related_word_ids": ["word_sit", "word_please"], "checks": ["sentence_pattern"], "error_tag": "please_verb_pattern"},
+        {"question_id": "vi_phonics_001_q4", "question_type": "sentence_meaning", "prompt": "I can see it. 最接近哪个意思？", "options": ["我能看见它", "我坐在这里", "这是你的座位"], "answer": "我能看见它", "explanation": "see 是看见；can 表示能。", "related_word_ids": ["word_see"], "checks": ["passage_comprehension"], "error_tag": "sentence_meaning"},
+        {"question_id": "vi_phonics_001_q5", "question_type": "meaning_choice", "prompt": "哪个词表示“座位”？", "options": ["seat", "see", "please"], "answer": "seat", "explanation": "seat 是名词，表示“座位”。", "related_word_ids": ["word_seat"], "checks": ["word_meaning"], "error_tag": "word_meaning"}
       ],
       "source_basis": ["src_cefr_official", "src_cambridge_pre_a1", "src_oxford_3000_5000"]
     },
-    {"route_item_id": "vi_phonics_002", "day_number": 2, "theme": "短元音听辨：/e/ 和 /æ/", "route_module_label": "短元音听辨", "main_knowledge_label": "/e/ 和 /æ/", "passage_module_label": "桌面物品对话", "level_code": "入门", "target_minutes": 30, "phonics_focus": ["/e/", "/æ/"], "new_words": ["pen", "bed", "bag", "map"], "sentence_patterns": ["I see a pen.", "It is a bag."], "source_basis": ["src_cambridge_pre_a1", "src_oxford_3000_5000"]},
-    {"route_item_id": "vi_phonics_003", "day_number": 3, "theme": "元音开口练习：/ɑː/ 和 /ʌ/", "route_module_label": "元音开口练习", "main_knowledge_label": "/ɑː/ 和 /ʌ/", "passage_module_label": "家庭物品对话", "level_code": "入门", "target_minutes": 30, "phonics_focus": ["/ɑː/", "/ʌ/"], "new_words": ["car", "cup", "arm", "sun"], "sentence_patterns": ["I see a cup.", "The car is here."], "source_basis": ["src_cambridge_pre_a1", "src_oxford_3000_5000"]},
-    {"route_item_id": "vi_phonics_004", "day_number": 4, "theme": "圆唇元音练习：/uː/ 和 /ʊ/", "route_module_label": "圆唇元音练习", "main_knowledge_label": "/uː/ 和 /ʊ/", "passage_module_label": "食物和书本对话", "level_code": "入门", "target_minutes": 30, "phonics_focus": ["/uː/", "/ʊ/"], "new_words": ["food", "book", "good", "look"], "sentence_patterns": ["Look at the book.", "The food is good."], "source_basis": ["src_cambridge_pre_a1", "src_oxford_3000_5000"]},
-    {"route_item_id": "vi_phonics_005", "day_number": 5, "theme": "双元音入门：/eɪ/ 和 /aɪ/", "route_module_label": "双元音入门", "main_knowledge_label": "/eɪ/ 和 /aɪ/", "passage_module_label": "自我介绍对话", "level_code": "入门", "target_minutes": 30, "phonics_focus": ["/eɪ/", "/aɪ/"], "new_words": ["day", "name", "I", "like"], "sentence_patterns": ["I am Vi.", "I like it."], "source_basis": ["src_british_council_learnenglish", "src_oxford_3000_5000"]},
-    {"route_item_id": "vi_phonics_006", "day_number": 6, "theme": "辅音爆破音入门：/p/ 和 /b/", "route_module_label": "辅音爆破音入门", "main_knowledge_label": "/p/ 和 /b/", "passage_module_label": "银行物品对话", "level_code": "入门", "target_minutes": 30, "phonics_focus": ["/p/", "/b/"], "new_words": ["pen", "bank", "bag", "please"], "sentence_patterns": ["Please sit.", "This is a bank."], "source_basis": ["src_british_council_learnenglish", "src_oxford_3000_5000"]},
-    {"route_item_id": "vi_phonics_007", "day_number": 7, "theme": "首周复习：长短元音和简单音节", "route_module_label": "首周复习", "main_knowledge_label": "长短元音和简单音节", "passage_module_label": "复习对话", "level_code": "入门", "target_minutes": 30, "review_words": ["see", "sit", "seat", "pen", "bag", "book"], "sentence_patterns": ["I see it.", "Look at the book.", "It is a bag."], "source_basis": ["src_cefr_official", "src_cambridge_pre_a1"]},
+    {
+      "route_item_id": "vi_phonics_002",
+      "day_number": 2,
+      "theme": "第一周故事：桌面物品",
+      "route_module_label": "短元音听辨",
+      "main_knowledge_label": "/e/ 和 /æ/",
+      "passage_module_label": "办公室桌面",
+      "level_code": "入门",
+      "target_minutes": 30,
+      "difficulty": "starter",
+      "phonics_focus": ["/e/", "/æ/"],
+      "new_words": ["pen", "desk", "bag", "map"],
+      "objectives": [
+        "能区分 pen、desk 里的 /e/ 和 bag、map 里的 /æ/",
+        "能说出 pen、desk、bag、map 的核心意思",
+        "能理解 Do you have a pen? 和 The map is in my bag.",
+        "完成听音、词义、句子填空和课文理解测试"
+      ],
+      "preview": "今天进入办公室桌面场景：笔、桌子、包和地图。旧词 see 会在课文里自然复现。",
+      "knowledge_title": "今天讲什么：短元音和桌面物品",
+      "knowledge_cards": [
+        "1. 发音：/e/ 是短音，嘴巴半开，pen /pen/ 和 desk /desk/ 都有这个音。",
+        "2. 发音：/æ/ 也是短音，但嘴巴张得更大，bag /bæɡ/ 和 map /mæp/ 都有这个音。",
+        "3. 单词：pen 是“笔”，desk 是“桌子”，bag 是“包”，map 是“地图”。",
+        "4. 句型：Do you have a pen? 可以先整体记成“你有笔吗？”",
+        "5. 句型：The map is in my bag. 是“地图在我包里”。in 表示“在里面”。"
+      ],
+      "passage": {
+        "title": "Do you have a pen?",
+        "passage_type": "dialogue",
+        "lines": [
+          {"role": "Teacher", "text": "Do you have a pen?", "translation": "你有笔吗？"},
+          {"role": "Vi", "text": "Yes. Here is my pen.", "translation": "有。这是我的笔。"},
+          {"role": "Teacher", "text": "Put the pen on the desk.", "translation": "把笔放在桌子上。"},
+          {"role": "Vi", "text": "OK. My bag is here.", "translation": "好的。我的包在这里。"},
+          {"role": "Teacher", "text": "Is the map in your bag?", "translation": "地图在你的包里吗？"},
+          {"role": "Vi", "text": "Yes. The map is in my bag.", "translation": "是的。地图在我的包里。"}
+        ],
+        "difficult_words": [
+          {"word": "do", "meaning": "用于提问"},
+          {"word": "you", "meaning": "你"},
+          {"word": "have", "meaning": "有"},
+          {"word": "here", "meaning": "这里"},
+          {"word": "put", "meaning": "放"},
+          {"word": "on", "meaning": "在……上"},
+          {"word": "in", "meaning": "在……里面"},
+          {"word": "my", "meaning": "我的"}
+        ]
+      },
+      "quiz_questions": [
+        {"question_id": "vi_phonics_002_q1", "question_type": "sound_choice", "prompt": "听音，选择你听到的词。", "audio_text": "bag", "options": ["bag", "bed", "pen"], "answer": "bag", "explanation": "bag /bæɡ/ 中间是 /æ/。", "related_word_ids": ["word_bag"], "checks": ["pronunciation_discrimination"], "error_tag": "listen_word_bag"},
+        {"question_id": "vi_phonics_002_q2", "question_type": "meaning_choice", "prompt": "desk 的核心意思是？", "options": ["桌子", "包", "地图"], "answer": "桌子", "explanation": "desk 是名词，表示“桌子”。", "related_word_ids": ["word_desk"], "checks": ["word_meaning"], "error_tag": "word_meaning"},
+        {"question_id": "vi_phonics_002_q3", "question_type": "cloze", "prompt": "The map is in my ___. 空格里最合适的是？", "options": ["bag", "seat", "food"], "answer": "bag", "explanation": "The map is in my bag. 是“地图在我包里”。", "related_word_ids": ["word_map", "word_bag"], "checks": ["sentence_pattern"], "error_tag": "cloze_bag"},
+        {"question_id": "vi_phonics_002_q4", "question_type": "sentence_meaning", "prompt": "Do you have a pen? 最接近哪个意思？", "options": ["你有笔吗？", "你能看见屏幕吗？", "请坐这里。"], "answer": "你有笔吗？", "explanation": "have 是“有”；a pen 是“一支笔”。", "related_word_ids": ["word_pen"], "checks": ["passage_comprehension"], "error_tag": "sentence_meaning"},
+        {"question_id": "vi_phonics_002_q5", "question_type": "review_choice", "prompt": "上一课学过的 see 在 I see it. 里表示什么？", "options": ["看见", "坐下", "地图"], "answer": "看见", "explanation": "see 是旧词，今天继续回顾。", "related_word_ids": ["word_see"], "checks": ["review_retrieval"], "error_tag": "review_word_meaning"}
+      ],
+      "source_basis": ["src_cambridge_pre_a1", "src_oxford_3000_5000"]
+    },
+    {
+      "route_item_id": "vi_phonics_003",
+      "day_number": 3,
+      "theme": "第一周故事：上班路上",
+      "route_module_label": "元音开口练习",
+      "main_knowledge_label": "/ɑː/ 和 /ʌ/",
+      "passage_module_label": "通勤物品对话",
+      "level_code": "入门",
+      "target_minutes": 30,
+      "difficulty": "starter",
+      "phonics_focus": ["/ɑː/", "/ʌ/"],
+      "new_words": ["card", "cup", "car", "bus"],
+      "objectives": [
+        "能区分 card、car 里的 /ɑː/ 和 cup、bus 里的 /ʌ/",
+        "能说出 card、cup、car、bus 的核心意思",
+        "能理解 Do you have your card? 和 The cup is in my bag.",
+        "完成听音、词义、句意理解和场景选择测试"
+      ],
+      "preview": "今天把声音放到通勤场景：卡、杯子、车和公交车。card 后面会迁移到银行场景。",
+      "knowledge_title": "今天讲什么：开口元音和通勤物品",
+      "knowledge_cards": [
+        "1. 发音：/ɑː/ 是开口长音，声音拉长；card /kɑːrd/ 和 car /kɑːr/ 都有这个音。",
+        "2. 发音：/ʌ/ 是短音，口型放松；cup /kʌp/ 和 bus /bʌs/ 都有这个音。",
+        "3. 单词：card 是“卡片；银行卡”，cup 是“杯子”，car 是“小汽车”，bus 是“公交车”。",
+        "4. 句型：Do you have your card? 可以先整体记成“你带卡了吗？”",
+        "5. 场景迁移：card 是工作和银行场景都会用到的词，后面会继续出现。"
+      ],
+      "passage": {
+        "title": "Do you have your card?",
+        "passage_type": "dialogue",
+        "lines": [
+          {"role": "Colleague", "text": "Morning, Vi. Do you have your card?", "translation": "早上好，Vi。你带卡了吗？"},
+          {"role": "Vi", "text": "Yes. My card is here.", "translation": "带了。我的卡在这里。"},
+          {"role": "Colleague", "text": "Is your cup in the bag?", "translation": "你的杯子在包里吗？"},
+          {"role": "Vi", "text": "Yes. The cup is in my bag.", "translation": "是的。杯子在我的包里。"},
+          {"role": "Colleague", "text": "Is the bus here?", "translation": "公交车来了吗？"},
+          {"role": "Vi", "text": "Not yet. I see a car.", "translation": "还没有。我看见一辆小汽车。"}
+        ],
+        "difficult_words": [
+          {"word": "morning", "meaning": "早上好；早晨"},
+          {"word": "your", "meaning": "你的"},
+          {"word": "my", "meaning": "我的"},
+          {"word": "not yet", "meaning": "还没有"},
+          {"word": "a", "meaning": "一个；一辆"},
+          {"word": "in", "meaning": "在……里面"}
+        ]
+      },
+      "quiz_questions": [
+        {"question_id": "vi_phonics_003_q1", "question_type": "sound_choice", "prompt": "听音，选择你听到的词。", "audio_text": "card", "options": ["card", "cup", "car"], "answer": "card", "explanation": "card /kɑːrd/ 里有长 /ɑː/。", "related_word_ids": ["word_card"], "checks": ["pronunciation_discrimination"], "error_tag": "listen_word_card"},
+        {"question_id": "vi_phonics_003_q2", "question_type": "meaning_choice", "prompt": "bus 的核心意思是？", "options": ["公交车", "杯子", "卡片"], "answer": "公交车", "explanation": "bus 是名词，表示“公交车”。", "related_word_ids": ["word_bus"], "checks": ["word_meaning"], "error_tag": "word_meaning"},
+        {"question_id": "vi_phonics_003_q3", "question_type": "sentence_meaning", "prompt": "Do you have your card? 最接近哪个意思？", "options": ["你带卡了吗？", "你喜欢英语吗？", "请坐这里。"], "answer": "你带卡了吗？", "explanation": "card 是卡；have your card 在这里可理解为“带着你的卡”。", "related_word_ids": ["word_card"], "checks": ["passage_comprehension"], "error_tag": "sentence_meaning"},
+        {"question_id": "vi_phonics_003_q4", "question_type": "cloze", "prompt": "The cup is in my ___. 空格里最合适的是？", "options": ["bag", "seat", "bank"], "answer": "bag", "explanation": "in my bag 是“在我包里”。", "related_word_ids": ["word_cup", "word_bag"], "checks": ["review_retrieval", "sentence_pattern"], "error_tag": "cloze_bag"},
+        {"question_id": "vi_phonics_003_q5", "question_type": "scenario_choice", "prompt": "后面进入银行场景时，哪个词最可能继续用？", "options": ["card", "cup", "bus"], "answer": "card", "explanation": "card 可以表示银行卡，会在银行场景继续出现。", "related_word_ids": ["word_card"], "checks": ["transfer"], "error_tag": "scenario_transfer"}
+      ],
+      "source_basis": ["src_cambridge_pre_a1", "src_oxford_3000_5000"]
+    },
+    {
+      "route_item_id": "vi_phonics_004",
+      "day_number": 4,
+      "theme": "第一周故事：午休时间",
+      "route_module_label": "圆唇元音练习",
+      "main_knowledge_label": "/uː/ 和 /ʊ/",
+      "passage_module_label": "午休轻对话",
+      "level_code": "入门",
+      "target_minutes": 30,
+      "difficulty": "starter",
+      "phonics_focus": ["/uː/", "/ʊ/"],
+      "new_words": ["food", "book", "good", "look"],
+      "objectives": [
+        "能区分 food 里的 /uː/ 和 book、good、look 里的 /ʊ/",
+        "能说出 food、book、good、look 的核心意思",
+        "能理解 Is it good? 和 Look at this menu.",
+        "完成听音、词义、填空和课文理解测试"
+      ],
+      "preview": "今天进入午休小场景：书、食物、好和看。重点是 food 的长音和 book/good/look 的短音。",
+      "knowledge_title": "今天讲什么：圆唇元音和午休表达",
+      "knowledge_cards": [
+        "1. 发音：/uː/ 是长圆唇音，嘴唇收圆，声音拉长；food /fuːd/ 有这个音。",
+        "2. 发音：/ʊ/ 是短圆唇音，声音短；book /bʊk/、good /ɡʊd/、look /lʊk/ 都有这个音。",
+        "3. 单词：food 是“食物”，book 是“书”，good 是“好的”，look 是“看”。",
+        "4. 句型：Is it good? 是“它好吗？”回答可以说 Yes, it is good.",
+        "5. 句型：Look at this menu. 先整体记成“看这个菜单”。look at 是“看”。"
+      ],
+      "passage": {
+        "title": "Is it good?",
+        "passage_type": "dialogue",
+        "lines": [
+          {"role": "Colleague", "text": "What are you reading?", "translation": "你在读什么？"},
+          {"role": "Vi", "text": "A book.", "translation": "一本书。"},
+          {"role": "Colleague", "text": "Is it good?", "translation": "它好吗？"},
+          {"role": "Vi", "text": "Yes, it is good.", "translation": "是的，它很好。"},
+          {"role": "Colleague", "text": "Do you want food?", "translation": "你想吃点东西吗？"},
+          {"role": "Vi", "text": "Yes. Look at this menu.", "translation": "想。看这个菜单。"}
+        ],
+        "difficult_words": [
+          {"word": "what", "meaning": "什么"},
+          {"word": "reading", "meaning": "正在读"},
+          {"word": "it", "meaning": "它"},
+          {"word": "want", "meaning": "想要"},
+          {"word": "this", "meaning": "这个"},
+          {"word": "menu", "meaning": "菜单"}
+        ]
+      },
+      "quiz_questions": [
+        {"question_id": "vi_phonics_004_q1", "question_type": "sound_choice", "prompt": "听音，选择你听到的词。", "audio_text": "book", "options": ["book", "food", "good"], "answer": "book", "explanation": "book /bʊk/ 是短 /ʊ/。", "related_word_ids": ["word_book"], "checks": ["pronunciation_discrimination"], "error_tag": "listen_word_book"},
+        {"question_id": "vi_phonics_004_q2", "question_type": "meaning_choice", "prompt": "good 的核心意思是？", "options": ["好的", "书", "食物"], "answer": "好的", "explanation": "good 是形容词，表示“好的”。", "related_word_ids": ["word_good"], "checks": ["word_meaning"], "error_tag": "word_meaning"},
+        {"question_id": "vi_phonics_004_q3", "question_type": "cloze", "prompt": "Look at this ___. 空格里最合适的是？", "options": ["menu", "bus", "seat"], "answer": "menu", "explanation": "Look at this menu. 是“看这个菜单”。", "checks": ["sentence_pattern"], "error_tag": "look_at_pattern"},
+        {"question_id": "vi_phonics_004_q4", "question_type": "sentence_meaning", "prompt": "Is it good? 最接近哪个意思？", "options": ["它好吗？", "你有笔吗？", "地图在包里吗？"], "answer": "它好吗？", "explanation": "good 是“好的”；Is it good? 是一个简单确认问题。", "related_word_ids": ["word_good"], "checks": ["passage_comprehension"], "error_tag": "sentence_meaning"},
+        {"question_id": "vi_phonics_004_q5", "question_type": "review_choice", "prompt": "旧词 see 和今天的 look 都和哪个动作有关？", "options": ["看", "坐", "帮助"], "answer": "看", "explanation": "see 强调“看见”，look 强调“看”。", "related_word_ids": ["word_see", "word_look"], "checks": ["review_retrieval"], "error_tag": "review_connection"}
+      ],
+      "source_basis": ["src_cambridge_pre_a1", "src_oxford_3000_5000"]
+    },
+    {
+      "route_item_id": "vi_phonics_005",
+      "day_number": 5,
+      "theme": "第一周故事：说出名字",
+      "route_module_label": "双元音入门",
+      "main_knowledge_label": "/eɪ/ 和 /aɪ/",
+      "passage_module_label": "自我介绍微场景",
+      "level_code": "入门",
+      "target_minutes": 30,
+      "difficulty": "starter",
+      "phonics_focus": ["/eɪ/", "/aɪ/"],
+      "new_words": ["day", "name", "I", "like"],
+      "objectives": [
+        "能听出 day、name 里的 /eɪ/ 和 I、like 里的 /aɪ/",
+        "能说出 day、name、I、like 的核心意思",
+        "能理解 My name is Vi. 和 I like English.",
+        "完成听音、词义、句子选择和课文理解测试"
+      ],
+      "preview": "今天把发音变成最有用的开口句：My name is Vi. I like English.",
+      "knowledge_title": "今天讲什么：双元音和自我介绍",
+      "knowledge_cards": [
+        "1. 发音：/eɪ/ 是滑动音，day /deɪ/ 和 name /neɪm/ 都有这个音。",
+        "2. 发音：/aɪ/ 也是滑动音，I /aɪ/ 和 like /laɪk/ 都有这个音。",
+        "3. 单词：day 是“一天”，name 是“名字”，I 是“我”，like 是“喜欢”。",
+        "4. 句型：My name is Vi. 是“我的名字是 Vi”。先整体记住，不展开复杂语法。",
+        "5. 句型：I like English. 是“我喜欢英语”。I like ... 后面可以接喜欢的人或事。"
+      ],
+      "passage": {
+        "title": "My name is Vi",
+        "passage_type": "dialogue",
+        "lines": [
+          {"role": "Teacher", "text": "Hi, Vi. What is your name?", "translation": "嗨，Vi。你叫什么名字？"},
+          {"role": "Vi", "text": "My name is Vi.", "translation": "我的名字是 Vi。"},
+          {"role": "Teacher", "text": "Do you like English?", "translation": "你喜欢英语吗？"},
+          {"role": "Vi", "text": "Yes, I like English.", "translation": "是的，我喜欢英语。"},
+          {"role": "Teacher", "text": "Have a good day.", "translation": "祝你今天愉快。"},
+          {"role": "Vi", "text": "Thank you. Good day.", "translation": "谢谢。祝你愉快。"}
+        ],
+        "difficult_words": [
+          {"word": "what", "meaning": "什么"},
+          {"word": "your", "meaning": "你的"},
+          {"word": "my", "meaning": "我的"},
+          {"word": "English", "meaning": "英语"},
+          {"word": "have", "meaning": "有；度过"},
+          {"word": "thank you", "meaning": "谢谢"}
+        ]
+      },
+      "quiz_questions": [
+        {"question_id": "vi_phonics_005_q1", "question_type": "sound_choice", "prompt": "听音，选择你听到的词。", "audio_text": "name", "options": ["name", "day", "like"], "answer": "name", "explanation": "name /neɪm/ 有双元音 /eɪ/。", "related_word_ids": ["word_name"], "checks": ["pronunciation_discrimination"], "error_tag": "listen_word_name"},
+        {"question_id": "vi_phonics_005_q2", "question_type": "meaning_choice", "prompt": "I 的核心意思是？", "options": ["我", "你", "它"], "answer": "我", "explanation": "I 表示“我”。", "related_word_ids": ["word_i"], "checks": ["word_meaning"], "error_tag": "word_meaning"},
+        {"question_id": "vi_phonics_005_q3", "question_type": "scenario_choice", "prompt": "别人问 What is your name? 你可以回答哪一句？", "options": ["My name is Vi.", "Please sit here.", "The map is in my bag."], "answer": "My name is Vi.", "explanation": "问名字时可以回答 My name is ...。", "related_word_ids": ["word_name"], "checks": ["communicative_choice"], "error_tag": "scenario_response"},
+        {"question_id": "vi_phonics_005_q4", "question_type": "sentence_meaning", "prompt": "I like English. 最接近哪个意思？", "options": ["我喜欢英语", "我能看见它", "我有一支笔"], "answer": "我喜欢英语", "explanation": "I like ... 是“我喜欢……”。", "related_word_ids": ["word_i", "word_like"], "checks": ["sentence_meaning"], "error_tag": "sentence_meaning"},
+        {"question_id": "vi_phonics_005_q5", "question_type": "cloze", "prompt": "My ___ is Vi. 空格里最合适的是？", "options": ["name", "day", "book"], "answer": "name", "explanation": "My name is Vi. 是“我的名字是 Vi”。", "related_word_ids": ["word_name"], "checks": ["sentence_pattern"], "error_tag": "my_name_pattern"}
+      ],
+      "source_basis": ["src_british_council_learnenglish", "src_oxford_3000_5000"]
+    },
+    {
+      "route_item_id": "vi_phonics_006",
+      "day_number": 6,
+      "theme": "第一周故事：银行前台",
+      "route_module_label": "辅音爆破音入门",
+      "main_knowledge_label": "/p/ 和 /b/",
+      "passage_module_label": "银行前台微对话",
+      "level_code": "入门",
+      "target_minutes": 30,
+      "difficulty": "starter",
+      "phonics_focus": ["/p/", "/b/"],
+      "new_words": ["welcome", "bank", "help", "card"],
+      "objectives": [
+        "能感知 bank 里的 /b/ 和 please/help 里的 /p/ 相关爆破音",
+        "能说出 welcome、bank、help、card 的核心意思",
+        "能理解 Welcome to the bank. 和 I can help.",
+        "完成听音、词义、句子选择和课文理解测试"
+      ],
+      "preview": "今天进入 Vi 真正关心的银行场景。句子仍然短，但要更像真实接待：Welcome to the bank. I can help.",
+      "knowledge_title": "今天讲什么：银行接待开场",
+      "knowledge_cards": [
+        "1. 发音：/b/ 是带声带振动的爆破音，bank /bæŋk/ 以 /b/ 开头。",
+        "2. 发音：/p/ 是不带声带振动的爆破音，please /pliːz/ 以 /p/ 开头，help /help/ 结尾也要收住。",
+        "3. 单词：welcome 是“欢迎”，bank 是“银行”，help 是“帮助”，card 是“卡；银行卡”。",
+        "4. 句型：Welcome to the bank. 是“欢迎来到银行”，适合客户刚进门时说。",
+        "5. 句型：I can help. 是“我可以帮忙”。服务场景里比 I see the bank 这类句子自然得多。"
+      ],
+      "passage": {
+        "title": "Welcome to the bank",
+        "passage_type": "dialogue",
+        "lines": [
+          {"role": "Customer", "text": "Good morning.", "translation": "早上好。"},
+          {"role": "Vi", "text": "Good morning. Welcome to the bank.", "translation": "早上好。欢迎来到银行。"},
+          {"role": "Customer", "text": "I need help, please.", "translation": "我需要帮助，谢谢。"},
+          {"role": "Vi", "text": "Sure. I can help.", "translation": "当然。我可以帮忙。"},
+          {"role": "Customer", "text": "I have a card.", "translation": "我有一张卡。"},
+          {"role": "Vi", "text": "OK. Please sit here.", "translation": "好的。请坐这里。"}
+        ],
+        "difficult_words": [
+          {"word": "customer", "meaning": "客户"},
+          {"word": "good morning", "meaning": "早上好"},
+          {"word": "need", "meaning": "需要"},
+          {"word": "sure", "meaning": "当然"},
+          {"word": "have", "meaning": "有"},
+          {"word": "here", "meaning": "这里"}
+        ]
+      },
+      "quiz_questions": [
+        {"question_id": "vi_phonics_006_q1", "question_type": "sound_choice", "prompt": "听音，选择你听到的词。", "audio_text": "bank", "options": ["bank", "bag", "book"], "answer": "bank", "explanation": "bank /bæŋk/ 是“银行”。", "related_word_ids": ["word_bank"], "checks": ["pronunciation_discrimination"], "error_tag": "listen_word_bank"},
+        {"question_id": "vi_phonics_006_q2", "question_type": "meaning_choice", "prompt": "help 的核心意思是？", "options": ["帮助", "欢迎", "座位"], "answer": "帮助", "explanation": "help 是动词或名词，核心意思是“帮助”。", "related_word_ids": ["word_help"], "checks": ["word_meaning"], "error_tag": "word_meaning"},
+        {"question_id": "vi_phonics_006_q3", "question_type": "scenario_choice", "prompt": "客户刚进银行，Vi 最适合先说哪一句？", "options": ["Welcome to the bank.", "The cup is in my bag.", "What are you reading?"], "answer": "Welcome to the bank.", "explanation": "Welcome to the bank. 是自然的银行接待开场。", "related_word_ids": ["word_welcome", "word_bank"], "checks": ["communicative_choice"], "error_tag": "scenario_response"},
+        {"question_id": "vi_phonics_006_q4", "question_type": "sentence_meaning", "prompt": "I can help. 最接近哪个意思？", "options": ["我可以帮忙", "我喜欢英语", "我有地图"], "answer": "我可以帮忙", "explanation": "can 是“能；可以”，help 是“帮助”。", "related_word_ids": ["word_help"], "checks": ["sentence_meaning"], "error_tag": "sentence_meaning"},
+        {"question_id": "vi_phonics_006_q5", "question_type": "review_choice", "prompt": "Please sit here. 里 sit 的意思是？", "options": ["坐下", "看见", "名字"], "answer": "坐下", "explanation": "sit 是第 1 天学过的旧词，这里继续复习。", "related_word_ids": ["word_sit"], "checks": ["review_retrieval"], "error_tag": "review_word_meaning"}
+      ],
+      "source_basis": ["src_british_council_learnenglish", "src_oxford_3000_5000"]
+    },
+    {
+      "route_item_id": "vi_phonics_007",
+      "day_number": 7,
+      "theme": "第一周复盘：能开口了",
+      "route_module_label": "首周复习",
+      "main_knowledge_label": "第一周核心词和短句",
+      "passage_module_label": "英语角到银行的综合对话",
+      "level_code": "入门",
+      "target_minutes": 30,
+      "difficulty": "starter",
+      "review_words": ["see", "sit", "seat", "pen", "bag", "card", "name", "bank", "help", "please"],
+      "objectives": [
+        "复习第一周最常出现的 10 个词",
+        "能跟读一段综合短对话",
+        "能在英语角和银行前台两个场景里选出合适短句",
+        "完成 5 道首周复盘测试"
+      ],
+      "preview": "今天不增加新词。把第一周出现过的词、声音和短句放进一个自然复盘对话里。",
+      "knowledge_title": "首周复盘：把词放回句子里",
+      "knowledge_cards": [
+        "1. 发音回顾：see、seat 有长 /iː/；sit 有短 /ɪ/；bank 和 bag 都以 /b/ 开头。",
+        "2. 词义回顾：see 看见，sit 坐下，seat 座位，card 卡，bank 银行，help 帮助。",
+        "3. 句型回顾：Please sit here. 是礼貌请求；I can help. 是服务场景里的自然回应。",
+        "4. 场景回顾：英语角先会听懂指令；银行前台先会说 Welcome to the bank.",
+        "5. 学习方法：今天的测试不是考冷知识，而是确认能不能听出来、认出来、放进正确场景。"
+      ],
+      "passage": {
+        "title": "Vi can start",
+        "passage_type": "dialogue",
+        "lines": [
+          {"role": "Teacher", "text": "You can start now, Vi.", "translation": "Vi，你现在可以开始了。"},
+          {"role": "Vi", "text": "OK. I can see the screen.", "translation": "好的。我能看见屏幕。"},
+          {"role": "Teacher", "text": "Please sit here.", "translation": "请坐这里。"},
+          {"role": "Vi", "text": "Thank you. This is my seat.", "translation": "谢谢。这是我的座位。"},
+          {"role": "Teacher", "text": "At the bank, what can you say?", "translation": "在银行，你可以说什么？"},
+          {"role": "Vi", "text": "Welcome to the bank. I can help.", "translation": "欢迎来到银行。我可以帮忙。"}
+        ],
+        "difficult_words": [
+          {"word": "start", "meaning": "开始"},
+          {"word": "now", "meaning": "现在"},
+          {"word": "screen", "meaning": "屏幕"},
+          {"word": "this", "meaning": "这；这个"},
+          {"word": "at", "meaning": "在"},
+          {"word": "say", "meaning": "说"}
+        ]
+      },
+      "quiz_questions": [
+        {"question_id": "vi_phonics_007_q1", "question_type": "sound_choice", "prompt": "听音，选择你听到的词。", "audio_text": "seat", "options": ["seat", "sit", "see"], "answer": "seat", "explanation": "seat /siːt/ 有长 /iː/，并且结尾有 /t/。", "related_word_ids": ["word_seat"], "checks": ["pronunciation_discrimination"], "error_tag": "listen_word_seat"},
+        {"question_id": "vi_phonics_007_q2", "question_type": "meaning_choice", "prompt": "bank 的核心意思是？", "options": ["银行", "包", "书"], "answer": "银行", "explanation": "bank 是银行场景核心词。", "related_word_ids": ["word_bank"], "checks": ["word_meaning"], "error_tag": "review_word_meaning"},
+        {"question_id": "vi_phonics_007_q3", "question_type": "scenario_choice", "prompt": "银行客户需要帮助时，Vi 可以说哪一句？", "options": ["I can help.", "A book.", "Not yet."], "answer": "I can help.", "explanation": "I can help. 是自然的服务回应。", "related_word_ids": ["word_help"], "checks": ["communicative_choice"], "error_tag": "scenario_response"},
+        {"question_id": "vi_phonics_007_q4", "question_type": "cloze", "prompt": "Please ___ here. 空格里最合适的是？", "options": ["sit", "name", "food"], "answer": "sit", "explanation": "Please sit here. 是第 1 天学过并反复用到的请求句。", "related_word_ids": ["word_sit"], "checks": ["review_retrieval", "sentence_pattern"], "error_tag": "cloze_review"},
+        {"question_id": "vi_phonics_007_q5", "question_type": "sentence_meaning", "prompt": "Welcome to the bank. 最接近哪个意思？", "options": ["欢迎来到银行", "地图在包里", "我喜欢英语"], "answer": "欢迎来到银行", "explanation": "welcome 是欢迎，bank 是银行。", "related_word_ids": ["word_welcome", "word_bank"], "checks": ["sentence_meaning"], "error_tag": "sentence_meaning"}
+      ],
+      "source_basis": ["src_cefr_official", "src_cambridge_pre_a1"]
+    },
     {"route_item_id": "vi_phonics_008", "day_number": 8, "theme": "辅音舌尖音入门：/t/ 和 /d/", "route_module_label": "辅音舌尖音入门", "main_knowledge_label": "/t/ 和 /d/", "passage_module_label": "日常问候对话", "level_code": "入门", "target_minutes": 30, "phonics_focus": ["/t/", "/d/"], "new_words": ["today", "tea", "day", "desk"], "sentence_patterns": ["Good day.", "Tea is on the desk."], "source_basis": ["src_british_council_learnenglish", "src_oxford_3000_5000"]},
     {"route_item_id": "vi_phonics_009", "day_number": 9, "theme": "辅音摩擦音入门：/s/ 和 /z/", "route_module_label": "辅音摩擦音入门", "main_knowledge_label": "/s/ 和 /z/", "passage_module_label": "服务表达对话", "level_code": "入门", "target_minutes": 30, "phonics_focus": ["/s/", "/z/"], "new_words": ["see", "is", "please", "zero"], "sentence_patterns": ["Please see this.", "It is zero."], "source_basis": ["src_british_council_learnenglish", "src_oxford_3000_5000"]},
     {"route_item_id": "vi_phonics_010", "day_number": 10, "theme": "音节拼读入门：CVC 和 CV", "route_module_label": "音节拼读入门", "main_knowledge_label": "CVC 和 CV 音节", "passage_module_label": "拼读复习对话", "level_code": "入门", "target_minutes": 30, "phonics_focus": ["CVC", "CV"], "new_words": ["me", "sit", "pen", "cup"], "sentence_patterns": ["Read it.", "I can read it."], "source_basis": ["src_cefr_official", "src_cambridge_pre_a1"]},

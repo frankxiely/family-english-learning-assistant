@@ -44,13 +44,34 @@ type WordItem = {
   needs_image?: boolean;
   image_hint?: string;
   image_url?: string;
+  learning_role?: "new" | "review";
+  is_review?: boolean;
+  review_reason?: string;
 };
 
 type QuizQuestion = {
+  question_id?: string;
+  question_type?: string;
   prompt: string;
   options: string[];
   answer: string;
   explanation?: string;
+  audio_text?: string;
+  audio_ref?: string;
+};
+
+type AudioAsset = {
+  audio_id: string;
+  target_type?: string;
+  target_ref?: string;
+  text?: string;
+  provider?: string;
+  local_url?: string | null;
+  rate?: number;
+  pitch?: number;
+  style?: string;
+  emphasis_words?: string[];
+  pause_after_ms?: number | null;
 };
 
 type Lesson = {
@@ -67,7 +88,7 @@ type Lesson = {
     title?: string;
     english_text?: string;
     chinese_support?: string;
-    lines?: Array<{ role?: string; text: string; translation?: string }>;
+    lines?: Array<{ role?: string; text: string; translation?: string; audio_ref?: string; slow_audio_ref?: string }>;
     difficult_words?: Array<{ word: string; meaning: string }>;
   };
   knowledge_note?: { title?: string; content?: string };
@@ -89,6 +110,7 @@ type Lesson = {
     main_knowledge_label?: string;
     passage_module_label?: string;
   };
+  audio_assets?: AudioAsset[];
   teaching_knowledge_id?: string;
 };
 
@@ -192,6 +214,54 @@ type UserWorkspace = {
   feedback_logs?: Array<{ feedback_id?: string; feedback_text?: string; created_at?: string }>;
 };
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/+$/, "");
+
+function normalizeBasePath(rawBase: string) {
+  const base = rawBase.trim();
+  if (!base || base === "/") return "";
+  return `/${base.replace(/^\/+|\/+$/g, "")}`;
+}
+
+const APP_BASE_PATH = normalizeBasePath(import.meta.env.BASE_URL ?? "/");
+
+function apiUrl(path: string) {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${API_BASE_URL}${normalizedPath}`;
+}
+
+function frontendAssetUrl(path: string) {
+  if (/^(https?:)?\/\//i.test(path) || path.startsWith("data:") || path.startsWith("blob:")) {
+    return path;
+  }
+  const base = import.meta.env.BASE_URL ?? "/";
+  return `${base.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+}
+
+function runtimeAssetUrl(path?: string | null) {
+  if (!path) return "";
+  if (/^(https?:)?\/\//i.test(path) || path.startsWith("data:") || path.startsWith("blob:")) {
+    return path;
+  }
+  if (path.startsWith("/generated/") && API_BASE_URL) {
+    return `${API_BASE_URL}${path}`;
+  }
+  return frontendAssetUrl(path);
+}
+
+function appPathFromLocation() {
+  const pathname = window.location.pathname;
+  if (APP_BASE_PATH && pathname === APP_BASE_PATH) return "/";
+  if (APP_BASE_PATH && pathname.startsWith(`${APP_BASE_PATH}/`)) {
+    return pathname.slice(APP_BASE_PATH.length) || "/";
+  }
+  return pathname;
+}
+
+function browserPathForAppPath(path: string) {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${APP_BASE_PATH}${normalizedPath}`;
+}
+
 const fallbackLesson: Lesson = {
   theme: "音标第一课：/iː/ 和 /ɪ/",
   human_readable_summary: "今天用 30 分钟学习第一组音标，先把长音和短音听清、读准。",
@@ -247,7 +317,7 @@ const fallbackLesson: Lesson = {
   }
 };
 
-const ADMIN_AVATAR_PATH = "/assets/avatars/roles/admin-male.png";
+const ADMIN_AVATAR_PATH = frontendAssetUrl("/assets/avatars/roles/admin-male.png");
 
 function readStoredSession(key: string): Session | null {
   const raw = localStorage.getItem(key);
@@ -275,7 +345,7 @@ function readSession(): Session | null {
 }
 
 function go(path: string) {
-  window.history.pushState({}, "", path);
+  window.history.pushState({}, "", browserPathForAppPath(path));
   window.dispatchEvent(new PopStateEvent("popstate"));
 }
 
@@ -291,12 +361,12 @@ function MomoLineLogo() {
 }
 
 function App() {
-  const [path, setPath] = useState(window.location.pathname);
+  const [path, setPath] = useState(appPathFromLocation());
   const [session, setSession] = useState<Session | null>(readSession());
   const [adminSession, setAdminSession] = useState<Session | null>(readStoredSession("momo_admin_session"));
 
   useEffect(() => {
-    const listener = () => setPath(window.location.pathname);
+    const listener = () => setPath(appPathFromLocation());
     window.addEventListener("popstate", listener);
     return () => window.removeEventListener("popstate", listener);
   }, []);
@@ -396,7 +466,7 @@ function LoginPage(props: { onLogin: (session: Session) => void }) {
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setError("");
-    const res = await fetch("/api/auth/login", {
+    const res = await fetch(apiUrl("/api/auth/login"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ login_account: loginAccount, password, remember })
@@ -476,7 +546,7 @@ function AdminLoginPage(props: { onLogin: (session: Session) => void }) {
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setError("");
-    const res = await fetch("/api/auth/login", {
+    const res = await fetch(apiUrl("/api/auth/login"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ login_account: loginAccount, password, remember })
@@ -608,10 +678,10 @@ function LearnPage(props: { session: Session; onLogout: () => void; onSessionUpd
 
   async function refreshLearning() {
     const [lessonRes, stateRes, reviewRes, routeRes] = await Promise.all([
-      fetch(`/api/learning/today?user_id=${props.session.user_id}`),
-      fetch(`/api/learning/state?user_id=${props.session.user_id}`),
-      fetch(`/api/learning/review?user_id=${props.session.user_id}`),
-      fetch(`/api/learning/route-map?user_id=${props.session.user_id}`)
+      fetch(apiUrl(`/api/learning/today?user_id=${encodeURIComponent(props.session.user_id)}`)),
+      fetch(apiUrl(`/api/learning/state?user_id=${encodeURIComponent(props.session.user_id)}`)),
+      fetch(apiUrl(`/api/learning/review?user_id=${encodeURIComponent(props.session.user_id)}`)),
+      fetch(apiUrl(`/api/learning/route-map?user_id=${encodeURIComponent(props.session.user_id)}`))
     ]);
     if (lessonRes.ok) {
       const data = await lessonRes.json();
@@ -644,6 +714,61 @@ function LearnPage(props: { session: Session; onLogout: () => void; onSessionUpd
     window.speechSynthesis.speak(utterance);
   }
 
+  function findAudioAssetById(audioId?: string) {
+    if (!audioId) return undefined;
+    return lesson.audio_assets?.find((asset) => asset.audio_id === audioId);
+  }
+
+  function findAudioAsset(targetType: string, targetRef: string) {
+    return lesson.audio_assets?.find((asset) => asset.target_type === targetType && asset.target_ref === targetRef);
+  }
+
+  function playAudioAssetOrSpeak(
+    asset: AudioAsset | undefined,
+    fallbackText: string,
+    options: { rate?: number; pitch?: number } = {},
+  ) {
+    const audioUrl = runtimeAssetUrl(asset?.local_url);
+    if (audioUrl) {
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+      const audio = new Audio(audioUrl);
+      setSpeakingText(asset.text ?? fallbackText);
+      audio.onended = () => setSpeakingText("");
+      audio.onerror = () => {
+        setSpeakingText("");
+        speak(fallbackText, options);
+      };
+      void audio.play().catch(() => speak(fallbackText, options));
+      return;
+    }
+    speak(fallbackText, {
+      rate: asset?.rate ?? options.rate,
+      pitch: asset?.pitch ?? options.pitch,
+    });
+  }
+
+  async function playAudioAssetsSequentially(assets: AudioAsset[], fallbackText: string, options: { rate?: number; pitch?: number } = {}) {
+    const playableAssets = assets.filter((asset) => runtimeAssetUrl(asset.local_url));
+    if (!playableAssets.length || playableAssets.length !== assets.length) {
+      speak(fallbackText, options);
+      return;
+    }
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    for (const asset of playableAssets) {
+      await new Promise<void>((resolve) => {
+        const audio = new Audio(runtimeAssetUrl(asset.local_url));
+        setSpeakingText(asset.text ?? fallbackText);
+        audio.onended = () => {
+          const pauseMs = Number(asset.pause_after_ms ?? 120);
+          window.setTimeout(resolve, Number.isFinite(pauseMs) ? pauseMs : 120);
+        };
+        audio.onerror = () => resolve();
+        void audio.play().catch(() => resolve());
+      });
+    }
+    setSpeakingText("");
+  }
+
   async function completeToday() {
     setIsSubmitting(true);
     setNotice("");
@@ -661,7 +786,7 @@ function LearnPage(props: { session: Session; onLogout: () => void; onSessionUpd
         quiz_mistakes: quizMistakes,
         difficulty_notes: difficultyText.split("\n").map((item) => item.trim()).filter(Boolean)
       };
-      const res = await fetch(`/api/learning/complete?user_id=${props.session.user_id}`, {
+      const res = await fetch(apiUrl(`/api/learning/complete?user_id=${encodeURIComponent(props.session.user_id)}`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -687,7 +812,7 @@ function LearnPage(props: { session: Session; onLogout: () => void; onSessionUpd
     setIsSavingAccount(true);
     setAccountNotice("");
     try {
-      const res = await fetch("/api/account/display-name", {
+      const res = await fetch(apiUrl("/api/account/display-name"), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -718,7 +843,7 @@ function LearnPage(props: { session: Session; onLogout: () => void; onSessionUpd
     setIsSavingAccount(true);
     setAccountNotice("");
     try {
-      const res = await fetch("/api/account/password", {
+      const res = await fetch(apiUrl("/api/account/password"), {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -770,7 +895,12 @@ function LearnPage(props: { session: Session; onLogout: () => void; onSessionUpd
   const completedQuizQuestionCount = learningState?.completed_quiz_questions ?? 0;
   const passageLines = getPassageLines();
   const passageSpeechText = passageLines.map((line) => line.text).join(". ");
-  const dailyWordSet = new Set((lesson.vocabulary ?? []).map((item) => item.word.toLowerCase()));
+  const wordRoleMap = new Map(
+    (lesson.vocabulary ?? []).map((item) => [
+      item.word.toLowerCase(),
+      item.is_review || item.learning_role === "review" ? "review" : "new"
+    ])
+  );
   const difficultWordMap = new Map(
     (lesson.passage?.difficult_words ?? [
       { word: "the", meaning: "这个；那个" },
@@ -791,7 +921,13 @@ function LearnPage(props: { session: Session; onLogout: () => void; onSessionUpd
 
   useEffect(() => {
     if (learnView !== "lesson" || lessonStep !== 1 || !currentWord) return;
-    const timer = window.setTimeout(() => speak(currentWord.word, { rate: 0.82, pitch: 1.05 }), 280);
+    const timer = window.setTimeout(() => {
+      playAudioAssetOrSpeak(
+        findAudioAsset("word", `word_${currentWord.word.toLowerCase()}`),
+        currentWord.word,
+        { rate: 0.82, pitch: 1.05 },
+      );
+    }, 280);
     return () => window.clearTimeout(timer);
   }, [learnView, lessonStep, wordIndex, lesson.lesson_asset_id]);
 
@@ -1050,26 +1186,26 @@ function LearnPage(props: { session: Session; onLogout: () => void; onSessionUpd
     if (identity.includes("adminxly") || identity.includes("admin_1") || identity.includes("user_admin_1")) {
       return ADMIN_AVATAR_PATH;
     }
-    return "/assets/avatar-vi.png";
+    return frontendAssetUrl("/assets/avatar-vi.png");
   }
 
   function getSpeakerAvatarUrl(role?: string) {
     const normalized = (role ?? "").toLowerCase().trim();
     if (!normalized) return "";
-    if (["vi", "vizhang"].includes(normalized)) return "/assets/avatar-vi.png";
+    if (["vi", "vizhang"].includes(normalized)) return frontendAssetUrl("/assets/avatar-vi.png");
     if (["mom", "mother", "mum", "mama", "妈妈"].includes(normalized)) {
-      return "/assets/avatars/roles/mom2.png";
+      return frontendAssetUrl("/assets/avatars/roles/mom2.png");
     }
     if (["admin", "administrator", "admin_1", "adminxly", "管理员"].includes(normalized)) {
       return ADMIN_AVATAR_PATH;
     }
     if (normalized.includes("teacher") || normalized.includes("老师")) {
-      return "/assets/avatars/roles/teacher-female.png";
+      return frontendAssetUrl("/assets/avatars/roles/teacher-female.png");
     }
     if (normalized.includes("doctor") || normalized.includes("医生")) {
       return normalized.includes("male") || normalized.includes("男")
-        ? "/assets/avatars/roles/doctor-male.png"
-        : "/assets/avatars/roles/doctor-female.png";
+        ? frontendAssetUrl("/assets/avatars/roles/doctor-male.png")
+        : frontendAssetUrl("/assets/avatars/roles/doctor-female.png");
     }
     return "";
   }
@@ -1147,15 +1283,24 @@ function LearnPage(props: { session: Session; onLogout: () => void; onSessionUpd
   }
 
   function playPassage(rate: number) {
-    speak(passageSpeechText, { rate, pitch: rate < 0.8 ? 1 : 1.06 });
+    const useSlowAudio = rate < 0.8;
+    const lineAssets = passageLines.map((line) => (
+      findAudioAssetById(useSlowAudio ? line.slow_audio_ref : line.audio_ref)
+    )).filter((asset): asset is AudioAsset => Boolean(asset));
+    if (lineAssets.length !== passageLines.length) {
+      speak(passageSpeechText, { rate, pitch: rate < 0.8 ? 1 : 1.06 });
+      return;
+    }
+    void playAudioAssetsSequentially(lineAssets, passageSpeechText, { rate, pitch: rate < 0.8 ? 1 : 1.06 });
   }
 
   function renderDialogueText(text: string) {
     return text.split(/(\b[A-Za-z']+\b)/g).map((part, index) => {
       const key = `${part}-${index}`;
       const normalized = part.toLowerCase();
-      if (dailyWordSet.has(normalized)) {
-        return <span className="today-word" key={key}>{part}</span>;
+      const learningRole = wordRoleMap.get(normalized);
+      if (learningRole) {
+        return <span className={learningRole === "review" ? "review-word" : "today-word"} key={key}>{part}</span>;
       }
       const meaning = difficultWordMap.get(normalized);
       if (meaning) {
@@ -1191,11 +1336,13 @@ function LearnPage(props: { session: Session; onLogout: () => void; onSessionUpd
       );
     }
     if (lessonStep === 1 && currentWord) {
-      const imageUrl = currentWord.image_url
+      const isReviewWord = Boolean(currentWord.is_review || currentWord.learning_role === "review");
+      const imagePath = currentWord.image_url
         ?? (currentWord.needs_image ? `/generated/word_images/${currentWord.word.toLowerCase().replace(/[^a-z0-9]+/g, "_")}.svg` : "");
+      const imageUrl = runtimeAssetUrl(imagePath);
       return (
         <section className="lesson-panel word-focus">
-          <p className="eyebrow">新单词 {wordIndex + 1}/{lesson.vocabulary?.length ?? 0}</p>
+          <p className="eyebrow">{isReviewWord ? "复习词" : "新词"} {wordIndex + 1}/{lesson.vocabulary?.length ?? 0}</p>
           <div className="word-hero">
             <h2>{currentWord.word}</h2>
             <p className="phonetic-line">{currentWord.phonetic}</p>
@@ -1205,12 +1352,17 @@ function LearnPage(props: { session: Session; onLogout: () => void; onSessionUpd
               <div className="word-picture">{currentWord.word.slice(0, 1).toUpperCase()}</div>
             )}
             <p className="word-part-line">{translatePartOfSpeech(currentWord.part_of_speech)}</p>
+            {isReviewWord ? <p className="word-review-line">上次内容回顾</p> : null}
             <p className="word-meaning-line">{currentWord.meaning}</p>
             <MobileButton
               className={`audio-pill ${speakingText === currentWord.word ? "playing" : ""}`}
               color="primary"
               fill="outline"
-              onClick={() => speak(currentWord.word)}
+              onClick={() => playAudioAssetOrSpeak(
+                findAudioAsset("word", `word_${currentWord.word.toLowerCase()}`),
+                currentWord.word,
+                { rate: 0.82, pitch: 1.05 },
+              )}
             >
               播放发音
             </MobileButton>
@@ -1271,7 +1423,11 @@ function LearnPage(props: { session: Session; onLogout: () => void; onSessionUpd
                   className={`line-play-button icon-audio ${speakingText === line.text ? "playing" : ""}`}
                   type="button"
                   aria-label={`播放 ${line.text}`}
-                  onClick={() => speak(line.text, { rate: 0.84, pitch: 1.06 })}
+                  onClick={() => playAudioAssetOrSpeak(
+                    findAudioAssetById(line.audio_ref),
+                    line.text,
+                    { rate: 0.84, pitch: 1.06 },
+                  )}
                 >
                   <SpeakerIcon />
                 </button>
@@ -1343,10 +1499,23 @@ function LearnPage(props: { session: Session; onLogout: () => void; onSessionUpd
     if (lessonStep === 4 && currentQuestion) {
       const wrongSelection = quizWrongSelections[currentQuestion.prompt];
       const checked = Boolean(answers[currentQuestion.prompt] || wrongSelection);
+      const quizAudioAsset = findAudioAssetById(currentQuestion.audio_ref)
+        ?? findAudioAsset("quiz_question", `quiz_question_${currentQuestion.question_id ?? ""}`);
+      const quizAudioText = currentQuestion.audio_text || quizAudioAsset?.text;
       return (
         <section className="lesson-panel quiz-panel">
           <p className="eyebrow">小测试 {quizIndex + 1}/{questions.length}</p>
           <h2>{currentQuestion.prompt}</h2>
+          {quizAudioText ? (
+            <MobileButton
+              className={`audio-pill quiz-audio-pill ${speakingText === quizAudioText ? "playing" : ""}`}
+              color="primary"
+              fill="outline"
+              onClick={() => playAudioAssetOrSpeak(quizAudioAsset, quizAudioText, { rate: 0.84, pitch: 1.04 })}
+            >
+              播放题目音频
+            </MobileButton>
+          ) : null}
           <div className="option-grid">
             {currentQuestion.options.map((option) => {
               const selected = answers[currentQuestion.prompt] === option;
@@ -1442,7 +1611,7 @@ function LearnPage(props: { session: Session; onLogout: () => void; onSessionUpd
 
           <div className="today-task-grid">
             <button type="button" onClick={() => openLessonAt(1)}>
-              <span>新单词</span>
+              <span>词汇</span>
               <b>{lesson.vocabulary?.length ?? 0} 个</b>
             </button>
             <button type="button" onClick={() => openLessonAt(2)}>
@@ -1743,7 +1912,7 @@ function AdminPage(props: { session: Session; onLogout: () => void }) {
   }
 
   async function loadUsers() {
-    const res = await fetch("/api/admin/users", { headers: adminHeaders() });
+    const res = await fetch(apiUrl("/api/admin/users"), { headers: adminHeaders() });
     if (!handleAdminAuth(res)) return;
     if (!res.ok) return;
     const data = await res.json();
@@ -1753,13 +1922,13 @@ function AdminPage(props: { session: Session; onLogout: () => void }) {
   }
 
   async function loadWorkspace(userId = selectedUserId) {
-    const res = await fetch(`/api/admin/users/${userId}/workspace`, { headers: adminHeaders() });
+    const res = await fetch(apiUrl(`/api/admin/users/${encodeURIComponent(userId)}/workspace`), { headers: adminHeaders() });
     if (!handleAdminAuth(res)) return;
     if (res.ok) setWorkspace(await res.json());
   }
 
   async function generateDraft() {
-    const res = await fetch("/api/admin/drafts/generate", {
+    const res = await fetch(apiUrl("/api/admin/drafts/generate"), {
       method: "POST",
       headers: adminHeaders(true),
       body: JSON.stringify({ user_id: selectedUserId })
@@ -1770,10 +1939,27 @@ function AdminPage(props: { session: Session; onLogout: () => void }) {
     await loadUsers();
   }
 
+  async function generateWeeklyDrafts() {
+    const res = await fetch(apiUrl("/api/admin/drafts/generate-week"), {
+      method: "POST",
+      headers: adminHeaders(true),
+      body: JSON.stringify({ user_id: selectedUserId, days: 7 })
+    });
+    if (!handleAdminAuth(res)) return;
+    if (res.ok) {
+      const data = await res.json();
+      setNotice(`已生成未来 ${data.drafts?.length ?? 7} 天未发布课程草稿。`);
+    } else {
+      setNotice("一周草稿生成失败。");
+    }
+    await loadWorkspace();
+    await loadUsers();
+  }
+
   async function confirmNote() {
     const draftId = workspace?.latest_draft?.draft_id;
     if (!draftId) return;
-    const res = await fetch(`/api/admin/drafts/${draftId}/note`, {
+    const res = await fetch(apiUrl(`/api/admin/drafts/${encodeURIComponent(draftId)}/note`), {
       method: "PUT",
       headers: adminHeaders(true),
       body: JSON.stringify({ admin_note: adminNoteDraft || null })
@@ -1786,7 +1972,7 @@ function AdminPage(props: { session: Session; onLogout: () => void }) {
   async function aiAdjust() {
     const draftId = workspace?.latest_draft?.draft_id;
     if (!draftId || !aiInstruction.trim()) return;
-    const res = await fetch(`/api/admin/drafts/${draftId}/ai-adjust`, {
+    const res = await fetch(apiUrl(`/api/admin/drafts/${encodeURIComponent(draftId)}/ai-adjust`), {
       method: "POST",
       headers: adminHeaders(true),
       body: JSON.stringify({ admin_instruction: aiInstruction })
@@ -1801,7 +1987,7 @@ function AdminPage(props: { session: Session; onLogout: () => void }) {
     if (!draftId) return;
     try {
       const parsed = JSON.parse(editorText);
-      const res = await fetch(`/api/admin/drafts/${draftId}`, {
+      const res = await fetch(apiUrl(`/api/admin/drafts/${encodeURIComponent(draftId)}`), {
         method: "PUT",
         headers: adminHeaders(true),
         body: JSON.stringify({ lesson_json: parsed })
@@ -1818,7 +2004,7 @@ function AdminPage(props: { session: Session; onLogout: () => void }) {
   async function undoDraft() {
     const draftId = workspace?.latest_draft?.draft_id;
     if (!draftId) return;
-    const res = await fetch(`/api/admin/drafts/${draftId}/undo`, {
+    const res = await fetch(apiUrl(`/api/admin/drafts/${encodeURIComponent(draftId)}/undo`), {
       method: "POST",
       headers: adminHeaders()
     });
@@ -1827,10 +2013,46 @@ function AdminPage(props: { session: Session; onLogout: () => void }) {
     await loadWorkspace();
   }
 
+  async function generateDraftAudio() {
+    const draftId = workspace?.latest_draft?.draft_id;
+    if (!draftId) return;
+    setNotice("正在生成音频，请稍等。");
+    const res = await fetch(apiUrl(`/api/admin/drafts/${encodeURIComponent(draftId)}/audio`), {
+      method: "POST",
+      headers: adminHeaders(true),
+      body: JSON.stringify({ force: false })
+    });
+    if (!handleAdminAuth(res)) return;
+    if (res.ok) {
+      const data = await res.json();
+      setNotice(`音频已生成：新增 ${data.generated_count ?? 0} 条，复用 ${data.skipped_count ?? 0} 条，失败 ${data.error_count ?? 0} 条。`);
+    } else {
+      setNotice("音频生成失败。");
+    }
+    await loadWorkspace();
+  }
+
+  async function generatePendingDraftsAudio() {
+    setNotice("正在生成未来 7 天待发布草稿音频，请稍等。");
+    const res = await fetch(apiUrl("/api/admin/drafts/audio-batch"), {
+      method: "POST",
+      headers: adminHeaders(true),
+      body: JSON.stringify({ user_id: selectedUserId, days: 7, force: false })
+    });
+    if (!handleAdminAuth(res)) return;
+    if (res.ok) {
+      const data = await res.json();
+      setNotice(`一周音频已处理：草稿 ${data.draft_count ?? 0} 个，新增 ${data.generated_count ?? 0} 条，复用 ${data.skipped_count ?? 0} 条，失败 ${data.error_count ?? 0} 条。`);
+    } else {
+      setNotice("一周音频生成失败。");
+    }
+    await loadWorkspace();
+  }
+
   async function publishDraft() {
     const draftId = workspace?.latest_draft?.draft_id;
     if (!draftId) return;
-    const res = await fetch(`/api/admin/drafts/${draftId}/publish`, {
+    const res = await fetch(apiUrl(`/api/admin/drafts/${encodeURIComponent(draftId)}/publish`), {
       method: "POST",
       headers: adminHeaders(true),
       body: JSON.stringify({ reason: "admin_manual_publish" })
@@ -1844,7 +2066,7 @@ function AdminPage(props: { session: Session; onLogout: () => void }) {
   async function saveFeedback() {
     const draftId = workspace?.latest_draft?.draft_id;
     if (!feedbackText.trim()) return;
-    const res = await fetch("/api/admin/feedback", {
+    const res = await fetch(apiUrl("/api/admin/feedback"), {
       method: "POST",
       headers: adminHeaders(true),
       body: JSON.stringify({
@@ -1938,6 +2160,9 @@ function AdminPage(props: { session: Session; onLogout: () => void }) {
             extra={
               <Space>
                 <Button onClick={generateDraft}>生成草稿</Button>
+                <Button onClick={generateWeeklyDrafts}>生成一周草稿</Button>
+                <Button disabled={!draft} onClick={generateDraftAudio}>生成音频</Button>
+                <Button disabled={!draft} onClick={generatePendingDraftsAudio}>生成一周音频</Button>
                 <Button type="primary" disabled={!draft} onClick={publishDraft}>发布</Button>
               </Space>
             }

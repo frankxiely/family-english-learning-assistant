@@ -98,11 +98,20 @@ audio_passage_i_see_it_dialogue_slow.mp3
 - 对话按句子分开朗读，不把角色名读出来。
 - 整篇播放时句间插入短停顿，角色切换处停顿更明显。
 
+### v1.1 已实现的本地 TTS
+
+- 管理员可以在后台对未发布草稿生成音频。
+- provider 为 `macos_say_tts`，使用 macOS `say` 生成 AIFF，再用 `afconvert` 转成 WAV。
+- 音频写入 `apps/web/public/generated/audio/`，通过 `audio_assets.local_url` 暴露给前端。
+- 单词、课文行、慢速课文行、听音测试题都能生成音频。
+- 前端正常/慢速整段播放会优先按逐句缓存音频顺序播放。
+- 如果本地音频缺失或播放失败，前端回退到 Web Speech。
+
 ### v1.2 推荐
 
-- 后端生成每句音频文件，前端只播放缓存文件。
-- 课文整体播放由多个句子音频顺序播放，而不是一次性读整段文本。
+- 后台增加音频审核队列，支持试听、重生成、手工上传和发布。
 - 同一个角色固定 voice，Teacher、Vi、Mom、Bank Staff 等角色有稳定声音。
+- 接入支持 SSML 的 provider 后，使用停顿、重音和发音词典进一步优化。
 - 每次生成音频记录 provider、voice、rate、pitch、style、source_text、content_hash。
 
 ### v1.3 之后
@@ -162,8 +171,26 @@ audio_passage_i_see_it_dialogue_slow.mp3
 
 ## v1.1 决策
 
-短期不直接接付费 API。先做三件事：
+短期不直接接付费 API，但前端不能继续只假设 Web Speech 是唯一音源。先做四件事：
 
 1. 把音频策略和 lesson JSON 字段写清楚。
-2. 前端继续用 Web Speech API，但记录 voice、locale、rate、pitch。
-3. 后端预留 `audio_assets` 和 `asset_sources`，后续接本地 TTS 或云 TTS 时不重构前端。
+2. 前端优先播放 lesson JSON 中 `audio_assets.local_url` 指向的缓存音频；没有缓存音频时才使用 Web Speech API。
+3. 后端继续写入 `audio_assets`，并为单词、课文行、慢速课文行和听音测试题生成稳定 `audio_ref`。
+4. `audio_assets` 增加 `style`、`emphasis_words`、`pause_after_ms`，为后续有感情、重音和停顿的 TTS provider 留出数据位。
+
+## 课文和测试音频目标
+
+课文音频不能只是“把文字念出来”。每个音频资产应记录：
+
+- `target_type`：word、passage_line、passage_line_slow、quiz_question。
+- `style`：例如 neutral、slow_clear、quiz_prompt、warm_teacher、bank_service。
+- `emphasis_words`：当天要强调的词或音，例如 see、sit、bank。
+- `pause_after_ms`：句后停顿，角色切换可更长。
+- `local_url`：生成完成后的缓存文件路径。
+
+后台后续需要提供音频生成/审核队列：
+
+- 生成：为已发布或待发布 lesson JSON 批量生成音频。
+- 试听：管理员在后台逐条听单词、课文行和测试题音频。
+- 替换：不满意时重新生成或手工上传。
+- 发布：只有通过审核的音频写入 `local_url`，前端才优先播放。

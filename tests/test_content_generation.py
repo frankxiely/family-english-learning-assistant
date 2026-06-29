@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from services.api.app import core
 
 
@@ -15,6 +17,106 @@ def test_lesson_generation_uses_content_knowledge_route(isolated_runtime) -> Non
     assert {asset["provider"] for asset in lesson["audio_assets"]} == {"web_speech_runtime"}
     assert all("rate" in asset and "voice_key" in asset for asset in lesson["audio_assets"])
     assert lesson["vocabulary"][0]["part_of_speech_zh"]
+    assert lesson["passage"]["lines"][0]["text"] == "Hi, Vi. Please sit here."
+    assert lesson["quiz"]["questions"][0]["question_type"] == "sound_choice"
+    assert lesson["quiz"]["questions"][0]["audio_text"] == "sit"
+    assert any(asset["target_type"] == "quiz_question" for asset in lesson["audio_assets"])
+
+
+def test_weekly_draft_generation_advances_content_route(isolated_runtime) -> None:
+    drafts = core.generate_weekly_lesson_draft_workspaces("user_mom", "2026-07-01")
+
+    assert len(drafts) == 7
+    assert drafts[0]["lesson_date"] == "2026-07-01"
+    assert drafts[-1]["lesson_date"] == "2026-07-07"
+
+    day_one = core.get_lesson_draft(drafts[0]["draft_id"])["draft_json"]
+    day_seven = core.get_lesson_draft(drafts[-1]["draft_id"])["draft_json"]
+
+    assert day_one["route_basis"]["content_route_item_id"] == "vi_phonics_001"
+    assert day_seven["route_basis"]["content_route_item_id"] == "vi_phonics_007"
+    assert day_one["theme"] != day_seven["theme"]
+    assert day_seven["vocabulary"][0]["learning_role"] == "review"
+
+
+def test_weekly_generation_distributes_review_words(isolated_runtime) -> None:
+    with core.connect() as conn:
+        conn.executemany(
+            """
+            INSERT INTO review_queue (
+              review_id, user_id, item_type, item_id, reason,
+              priority, planned_review_date, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            [
+                ("review_test_book", "user_mom", "word", "word_book", "marked fuzzy", 90, "2026-07-01", "pending"),
+                ("review_test_cup", "user_mom", "word", "word_cup", "marked fuzzy", 80, "2026-07-01", "pending"),
+            ],
+        )
+        conn.commit()
+
+    drafts = core.generate_weekly_lesson_draft_workspaces("user_mom", "2026-07-01", days=2)
+    day_one = core.get_lesson_draft(drafts[0]["draft_id"])["draft_json"]
+    day_two = core.get_lesson_draft(drafts[1]["draft_id"])["draft_json"]
+
+    day_one_reviews = {
+        item["word"].lower()
+        for item in day_one["vocabulary"]
+        if item.get("learning_role") == "review"
+    }
+    day_two_reviews = {
+        item["word"].lower()
+        for item in day_two["vocabulary"]
+        if item.get("learning_role") == "review"
+    }
+
+    assert "book" in day_one_reviews
+    assert "cup" in day_two_reviews
+    assert "复习回顾" in day_one["knowledge_note"]["content"]
+
+
+def test_generate_draft_audio_writes_local_urls(isolated_runtime, monkeypatch) -> None:
+    def fake_tts(asset: dict, output_path: Path, voice: str, wpm: int) -> None:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_bytes(b"RIFF....WAVEfmt test audio")
+
+    monkeypatch.setattr(core, "synthesize_local_tts_file", fake_tts)
+
+    draft_id = core.generate_lesson_draft_workspace("user_mom", "2026-07-01")
+    result = core.generate_lesson_draft_audio(draft_id)
+    draft = core.get_lesson_draft(draft_id)
+    lesson = draft["draft_json"]
+    audio_assets = lesson["audio_assets"]
+
+    assert result["generated_count"] == len(audio_assets)
+    assert result["error_count"] == 0
+    assert all(asset["provider"] == core.LOCAL_TTS_PROVIDER for asset in audio_assets)
+    assert all(asset["local_url"].startswith("/audio/") for asset in audio_assets)
+    assert any(asset["target_type"] == "quiz_question" for asset in audio_assets)
+
+    first_path = core.AUDIO_DIR.parent / audio_assets[0]["local_url"].lstrip("/")
+    assert first_path.exists()
+
+    with core.connect() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) AS count FROM asset_sources WHERE asset_type = 'audio'"
+        ).fetchone()
+    assert row["count"] == len(audio_assets)
+
+
+def test_generate_pending_draft_audio_batch(isolated_runtime, monkeypatch) -> None:
+    def fake_tts(asset: dict, output_path: Path, voice: str, wpm: int) -> None:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_bytes(b"RIFF....WAVEfmt test audio")
+
+    monkeypatch.setattr(core, "synthesize_local_tts_file", fake_tts)
+
+    core.generate_weekly_lesson_draft_workspaces("user_mom", "2026-07-01", days=2)
+    result = core.generate_pending_lesson_drafts_audio("user_mom", "2026-07-01", days=2)
+
+    assert result["draft_count"] == 2
+    assert result["generated_count"] > 0
+    assert result["error_count"] == 0
 
 
 def test_frank_lesson_generation_uses_advanced_user_route(isolated_runtime) -> None:

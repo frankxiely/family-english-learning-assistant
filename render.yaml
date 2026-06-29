@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: family-english-api
+    env: docker
+    plan: starter
+    autoDeploy: true
+    dockerfilePath: ./Dockerfile
+    disk:
+      name: family-english-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: MOMO_DB_PATH
+        value: /var/data/app.db
+      - key: MOMO_AUTO_SEED_TEST_DATA
+        value: "1"
+      - key: MOMO_CORS_ORIGINS
+        value: https://YOUR_GITHUB_USERNAME.github.io
