@@ -19,3 +19,4 @@ data/logs/**/*.log
 data/lesson_json/raw/*.json
 data/lesson_json/normalized/*.json
 data/lesson_json/validated/*.json
+apps/web/public/generated/audio/
