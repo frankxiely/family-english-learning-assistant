@@ -836,7 +836,18 @@ function LearnPage(props: { session: Session; onLogout: () => void; onSessionUpd
       setAccountNotice("当前登录状态已失效，请重新登录。");
       return;
     }
-    if (newPassword !== confirmPassword) {
+    const currentPasswordValue = currentPassword.trim();
+    const nextPasswordValue = newPassword.trim();
+    const confirmPasswordValue = confirmPassword.trim();
+    if (!currentPasswordValue) {
+      setAccountNotice("请输入当前密码。");
+      return;
+    }
+    if (nextPasswordValue.length < 8) {
+      setAccountNotice("新密码至少 8 位。");
+      return;
+    }
+    if (nextPasswordValue !== confirmPasswordValue) {
       setAccountNotice("两次输入的新密码不一致。");
       return;
     }
@@ -849,28 +860,32 @@ function LearnPage(props: { session: Session; onLogout: () => void; onSessionUpd
           "Content-Type": "application/json",
           Authorization: `Bearer ${props.session.session_token}`
         },
-        body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+        body: JSON.stringify({ current_password: currentPasswordValue, new_password: nextPasswordValue })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail ?? "保存失败");
       const rememberedRaw = localStorage.getItem("momo_login_remember");
       if (rememberedRaw) {
-        const remembered = JSON.parse(rememberedRaw) as { login_account?: string; password?: string; remember?: boolean };
-        if (remembered.login_account === props.session.login_account) {
-          localStorage.setItem("momo_login_remember", JSON.stringify({ ...remembered, password: newPassword }));
+        const remembered = JSON.parse(rememberedRaw) as { login_account?: string; username?: string; password?: string; remember?: boolean };
+        const rememberedAccount = remembered.login_account || remembered.username;
+        if (rememberedAccount === props.session.login_account) {
+          localStorage.setItem(
+            "momo_login_remember",
+            JSON.stringify({ ...remembered, login_account: rememberedAccount, password: nextPasswordValue })
+          );
         }
       }
       const adminRememberedRaw = localStorage.getItem("momo_admin_remember");
       if (adminRememberedRaw) {
         const remembered = JSON.parse(adminRememberedRaw) as { login_account?: string; password?: string; remember?: boolean };
         if (remembered.login_account === props.session.login_account && remembered.password) {
-          localStorage.setItem("momo_admin_remember", JSON.stringify({ ...remembered, password: newPassword }));
+          localStorage.setItem("momo_admin_remember", JSON.stringify({ ...remembered, password: nextPasswordValue }));
         }
       }
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      setAccountNotice("密码已更新。");
+      setAccountNotice("密码已更新，下次登录请使用新密码。");
     } catch (err) {
       setAccountNotice(`保存失败：${err instanceof Error ? err.message : "未知错误"}`);
     } finally {
