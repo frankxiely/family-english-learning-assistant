@@ -14,7 +14,7 @@
 ## 当前公开地址
 
 - 前端页面：`https://frankxiely.github.io/family-english-learning-assistant/`
-- 当前 API tunnel：`https://enclosure-affordable-contents-racial.trycloudflare.com`
+- 当前 API tunnel：`https://purchase-connectivity-wedding-womens.trycloudflare.com`
 
 Cloudflare Quick Tunnel 的地址不是永久地址。只要 tunnel 重启后地址变化，就要更新 GitHub 仓库变量并重新部署 Pages。
 
