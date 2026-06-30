@@ -878,10 +878,11 @@ function LearnPage(props: { session: Session; onLogout: () => void; onSessionUpd
     }
   }
 
-  const day = Math.max(1, Number(learningState?.status?.learning_days ?? 0) + (review ? 0 : 1));
+  const completedLearningDays = Math.max(0, Number(learningState?.status?.learning_days ?? 0));
   const displayUsername = props.session.username || props.session.nickname || "Vi";
   const userAvatarPath = getCurrentUserAvatarPath();
   const currentRoute = routeMap.find((item) => item.status === "active" || item.status === "next") ?? routeMap[0];
+  const currentLessonDay = Math.max(1, Number(currentRoute?.day_number ?? completedLearningDays + (review ? 0 : 1)));
   const selectedRoute = routeMap.find((item) => item.route_item_id === selectedRouteId) ?? currentRoute;
   const currentModuleIndex = Math.max(
     1,
@@ -891,7 +892,7 @@ function LearnPage(props: { session: Session; onLogout: () => void; onSessionUpd
   const stepLabels = ["目标", "单词", "课文", "讲解", "测试", "总结"];
   const currentWord = (lesson.vocabulary ?? [])[wordIndex];
   const currentQuestion = questions[quizIndex];
-  const learnedWordCount = learningState?.vocabulary_mastery?.length ?? (lesson.vocabulary?.length ?? 0);
+  const todayWordCount = lesson.vocabulary?.length ?? 0;
   const completedQuizQuestionCount = learningState?.completed_quiz_questions ?? 0;
   const passageLines = getPassageLines();
   const passageSpeechText = passageLines.map((line) => line.text).join(". ");
@@ -1600,12 +1601,12 @@ function LearnPage(props: { session: Session; onLogout: () => void; onSessionUpd
 
           <div className="home-stat-row">
             <div className="home-stat">
-              <b>{day}</b>
-              <span>学习天数</span>
+              <b>{currentLessonDay}</b>
+              <span>今日课次</span>
             </div>
             <div className="home-stat">
-              <b>{learnedWordCount}</b>
-              <span>已学单词</span>
+              <b>{todayWordCount}</b>
+              <span>今日单词</span>
             </div>
           </div>
 
@@ -1693,7 +1694,7 @@ function LearnPage(props: { session: Session; onLogout: () => void; onSessionUpd
               </p>
               <h2>{stepLabels[lessonStep]}</h2>
             </div>
-            <span>已学 {learnedWordCount} 词</span>
+            <span>今日 {todayWordCount} 词</span>
           </div>
           <div className="lesson-progress-bar" aria-hidden="true">
             <span style={{ width: `${Math.round(((lessonStep + 1 + (lessonStep === 2 && passagePage === 1 ? 0.45 : 0)) / stepLabels.length) * 100)}%` }} />
@@ -1776,7 +1777,7 @@ function LearnPage(props: { session: Session; onLogout: () => void; onSessionUpd
               <span>已完成测试题</span>
             </div>
             <div>
-              <b>{day}</b>
+              <b>{completedLearningDays}</b>
               <span>学习天数</span>
             </div>
             <div>
