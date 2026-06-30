@@ -2928,6 +2928,10 @@ def get_admin_user_directory() -> dict[str, Any]:
                   ls.current_stage,
                   ls.last_learning_date,
                   la.username AS login_account,
+                  published_today.lesson_asset_id AS published_lesson_asset_id,
+                  published_today.lesson_date AS published_lesson_date,
+                  published_today.status AS published_lesson_status,
+                  published_today.human_readable_summary AS published_lesson_summary,
                   (
                     SELECT COUNT(*)
                     FROM lesson_draft_workspaces ldw
@@ -2936,12 +2940,32 @@ def get_admin_user_directory() -> dict[str, Any]:
                 FROM users u
                 LEFT JOIN learning_profiles lp ON lp.user_id = u.user_id
                 LEFT JOIN learning_status ls ON ls.user_id = u.user_id
-                LEFT JOIN local_login_accounts la ON la.user_id = u.user_id
+                JOIN local_login_accounts la
+                  ON la.user_id = u.user_id
+                 AND la.role = 'learner'
+                 AND la.status = 'active'
+                LEFT JOIN (
+                  SELECT lesson_asset_id, user_id, lesson_date, status, human_readable_summary
+                  FROM lesson_json_assets
+                  WHERE lesson_date = ? AND status = 'published'
+                ) AS published_today ON published_today.user_id = u.user_id
                 WHERE u.role = 'learner'
                 ORDER BY u.created_at DESC
-                """
+                """,
+                (today_iso(),),
             ).fetchall()
         )
+        for user in users:
+            user["published_today"] = (
+                {
+                    "lesson_asset_id": user.pop("published_lesson_asset_id"),
+                    "lesson_date": user.pop("published_lesson_date"),
+                    "status": user.pop("published_lesson_status"),
+                    "human_readable_summary": user.pop("published_lesson_summary"),
+                }
+                if user.get("published_lesson_asset_id")
+                else None
+            )
     return {"users": users}
 
 

@@ -169,6 +169,12 @@ type AdminUser = {
   current_stage?: string;
   last_learning_date?: string;
   pending_draft_count?: number;
+  published_today?: {
+    lesson_asset_id?: string;
+    lesson_date?: string;
+    status?: string;
+    human_readable_summary?: string;
+  } | null;
 };
 
 type DraftWorkspace = {
@@ -209,7 +215,13 @@ type UserWorkspace = {
   profile?: Record<string, string | number | null>;
   login_accounts?: Array<{ login_account?: string; role?: string; status?: string; last_login_at?: string | null }>;
   latest_draft?: DraftWorkspace | null;
-  published_today?: { lesson_asset_id?: string; lesson_date?: string; status?: string; published_at?: string } | null;
+  published_today?: {
+    lesson_asset_id?: string;
+    lesson_date?: string;
+    status?: string;
+    human_readable_summary?: string;
+    published_at?: string;
+  } | null;
   learning_overview?: LearningOverview;
   feedback_logs?: Array<{ feedback_id?: string; feedback_text?: string; created_at?: string }>;
 };
@@ -2103,6 +2115,7 @@ function AdminPage(props: { session: Session; onLogout: () => void }) {
   const selectedUser = users.find((item) => item.user_id === selectedUserId);
   const draft = workspace?.latest_draft;
   const overview = workspace?.learning_overview;
+  const publishedToday = workspace?.published_today;
 
   return (
     <Layout className="admin-layout">
@@ -2123,7 +2136,10 @@ function AdminPage(props: { session: Session; onLogout: () => void }) {
                 title={user.nickname ?? user.user_id}
                 description={user.login_account ?? user.user_id}
               />
-              <Tag color={user.pending_draft_count ? "green" : "default"}>{user.pending_draft_count ?? 0}</Tag>
+              <Space size={4}>
+                {user.published_today ? <Tag color="blue">已发布</Tag> : null}
+                <Tag color={user.pending_draft_count ? "green" : "default"}>草稿 {user.pending_draft_count ?? 0}</Tag>
+              </Space>
             </List.Item>
           )}
         />
@@ -2169,6 +2185,26 @@ function AdminPage(props: { session: Session; onLogout: () => void }) {
               </Card>
             </Col>
           </Row>
+
+          <Card
+            className="admin-section"
+            title="今日已发布课程"
+            extra={publishedToday?.status ? <Tag color="blue">{publishedToday.status}</Tag> : null}
+          >
+            {publishedToday ? (
+              <>
+                <Typography.Title level={4}>{publishedToday.lesson_date ?? "今日"} · {publishedToday.lesson_asset_id}</Typography.Title>
+                <Typography.Paragraph>{publishedToday.human_readable_summary ?? "已发布课程可在学习端打开。"}</Typography.Paragraph>
+                <Space wrap>
+                  <Button onClick={() => go("/learn")}>打开学习端</Button>
+                  <Tag>学习天数 {overview?.learning_days ?? 0}</Tag>
+                  <Tag>词汇量估计 {overview?.vocabulary_estimate ?? 0}</Tag>
+                </Space>
+              </>
+            ) : (
+              <Typography.Paragraph>今天还没有已发布课程。可以先生成草稿并发布。</Typography.Paragraph>
+            )}
+          </Card>
 
           <Card
             className="admin-section"
