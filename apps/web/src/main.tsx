@@ -1592,7 +1592,7 @@ function LearnPage(props: { session: Session; onLogout: () => void; onSessionUpd
         <MobileTextArea
           value={difficultyText}
           onChange={setDifficultyText}
-          placeholder="可以写今天卡住的地方，也可以留空"
+          placeholder="写一个最卡的点：哪个词最容易混、哪句话听不清、哪句不敢开口"
           rows={3}
         />
         <MobileButton data-testid="complete-today-learning" className="primary-action" block color="primary" size="large" loading={isSubmitting} onClick={completeToday}>

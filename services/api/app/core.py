@@ -5,6 +5,7 @@ import hashlib
 import io
 import json
 import os
+import random
 import re
 import secrets
 import shutil
@@ -82,6 +83,23 @@ STARTER_WORD_BANK: dict[str, dict[str, Any]] = {
     "is": {"phonetic": "/ɪz/", "part_of_speech": "verb", "part_of_speech_zh": "动词", "meaning": "是", "needs_image": False},
     "zero": {"phonetic": "/ˈzɪroʊ/", "part_of_speech": "number", "part_of_speech_zh": "数词", "meaning": "零", "needs_image": False},
     "me": {"phonetic": "/miː/", "part_of_speech": "pronoun", "part_of_speech_zh": "代词", "meaning": "我；我自己", "needs_image": False},
+    "read": {"phonetic": "/riːd/", "part_of_speech": "verb", "part_of_speech_zh": "动词", "meaning": "读", "needs_image": True},
+    "repeat": {"phonetic": "/rɪˈpiːt/", "part_of_speech": "verb", "part_of_speech_zh": "动词", "meaning": "重复；再说一遍", "needs_image": False},
+    "spell": {"phonetic": "/spel/", "part_of_speech": "verb", "part_of_speech_zh": "动词", "meaning": "拼写", "needs_image": False},
+    "again": {"phonetic": "/əˈɡen/", "part_of_speech": "adverb", "part_of_speech_zh": "副词", "meaning": "再一次", "needs_image": False},
+    "sorry": {"phonetic": "/ˈsɑːri/", "part_of_speech": "interjection", "part_of_speech_zh": "礼貌用语", "meaning": "抱歉", "needs_image": False},
+    "fine": {"phonetic": "/faɪn/", "part_of_speech": "adjective", "part_of_speech_zh": "形容词", "meaning": "好的；还不错", "needs_image": False},
+    "thanks": {"phonetic": "/θæŋks/", "part_of_speech": "interjection", "part_of_speech_zh": "礼貌用语", "meaning": "谢谢", "needs_image": False},
+    "morning": {"phonetic": "/ˈmɔːrnɪŋ/", "part_of_speech": "noun", "part_of_speech_zh": "名词", "meaning": "早晨；早上", "needs_image": True},
+    "work": {"phonetic": "/wɜːrk/", "part_of_speech": "verb", "part_of_speech_zh": "动词", "meaning": "工作", "needs_image": True},
+    "at": {"phonetic": "/æt/", "part_of_speech": "preposition", "part_of_speech_zh": "介词", "meaning": "在", "needs_image": False},
+    "branch": {"phonetic": "/bræntʃ/", "part_of_speech": "noun", "part_of_speech_zh": "名词", "meaning": "支行；分支机构", "needs_image": True},
+    "customer": {"phonetic": "/ˈkʌstəmər/", "part_of_speech": "noun", "part_of_speech_zh": "名词", "meaning": "客户", "needs_image": True},
+    "need": {"phonetic": "/niːd/", "part_of_speech": "verb", "part_of_speech_zh": "动词", "meaning": "需要", "needs_image": False},
+    "account": {"phonetic": "/əˈkaʊnt/", "part_of_speech": "noun", "part_of_speech_zh": "名词", "meaning": "账户", "needs_image": True},
+    "number": {"phonetic": "/ˈnʌmbər/", "part_of_speech": "noun", "part_of_speech_zh": "名词", "meaning": "号码；数字", "needs_image": False},
+    "form": {"phonetic": "/fɔːrm/", "part_of_speech": "noun", "part_of_speech_zh": "名词", "meaning": "表格", "needs_image": True},
+    "sign": {"phonetic": "/saɪn/", "part_of_speech": "verb", "part_of_speech_zh": "动词", "meaning": "签名", "needs_image": True},
 }
 
 SENTENCE_TRANSLATIONS = {
@@ -208,21 +226,154 @@ def route_data_for_user(user_id: str | None) -> dict[str, Any]:
     return load_user_learning_route(user_id) or load_starter_phonics_route()
 
 
+def extract_content_route_day(lesson_json: dict[str, Any] | None) -> int | None:
+    if not lesson_json:
+        return None
+    route_basis = lesson_json.get("route_basis") or {}
+    try:
+        route_day = int(route_basis.get("content_route_day") or 0)
+    except (TypeError, ValueError):
+        return None
+    return route_day if route_day > 0 else None
+
+
+def clamp_content_route_day(user_id: str | None, route_day: int) -> int:
+    route_items = route_data_for_user(user_id).get("route_items") or []
+    if not route_items:
+        return max(1, route_day)
+    return max(1, min(route_day, len(route_items)))
+
+
+def completed_content_route_day_from_context(context: dict[str, Any]) -> int | None:
+    try:
+        completed_route_day = int(context.get("completed_content_route_day") or 0)
+    except (TypeError, ValueError):
+        completed_route_day = 0
+    if completed_route_day > 0:
+        return completed_route_day
+    return None
+
+
+def get_completed_content_route_day(conn: sqlite3.Connection, user_id: str) -> int | None:
+    row = conn.execute(
+        """
+        SELECT MAX(CAST(json_extract(lja.lesson_json, '$.route_basis.content_route_day') AS INTEGER)) AS route_day
+        FROM daily_progress dp
+        JOIN lesson_json_assets lja ON lja.lesson_asset_id = dp.lesson_asset_id
+        WHERE dp.user_id = ? AND lja.user_id = ?
+        """,
+        (user_id, user_id),
+    ).fetchone()
+    try:
+        route_day = int((row or {})["route_day"] or 0)
+    except (KeyError, TypeError, ValueError):
+        return None
+    return route_day if route_day > 0 else None
+
+
+def latest_published_content_route_anchor(
+    conn: sqlite3.Connection,
+    user_id: str,
+    lesson_date: str,
+) -> tuple[int, str] | None:
+    row = conn.execute(
+        """
+        SELECT
+          lesson_date,
+          CAST(json_extract(lesson_json, '$.route_basis.content_route_day') AS INTEGER) AS route_day
+        FROM lesson_json_assets
+        WHERE user_id = ?
+          AND lesson_date < ?
+          AND status = 'published'
+          AND CAST(json_extract(lesson_json, '$.route_basis.content_route_day') AS INTEGER) > 0
+        ORDER BY lesson_date DESC, published_at DESC, created_at DESC
+        LIMIT 1
+        """,
+        (user_id, lesson_date),
+    ).fetchone()
+    if not row:
+        return None
+    return int(row["route_day"]), str(row["lesson_date"])
+
+
+def latest_completed_content_route_anchor(
+    conn: sqlite3.Connection,
+    user_id: str,
+    lesson_date: str,
+) -> tuple[int, str] | None:
+    row = conn.execute(
+        """
+        SELECT
+          dp.progress_date AS lesson_date,
+          CAST(json_extract(lja.lesson_json, '$.route_basis.content_route_day') AS INTEGER) AS route_day
+        FROM daily_progress dp
+        JOIN lesson_json_assets lja ON lja.lesson_asset_id = dp.lesson_asset_id
+        WHERE dp.user_id = ?
+          AND lja.user_id = ?
+          AND dp.progress_date < ?
+          AND CAST(json_extract(lja.lesson_json, '$.route_basis.content_route_day') AS INTEGER) > 0
+        ORDER BY dp.progress_date DESC, dp.created_at DESC
+        LIMIT 1
+        """,
+        (user_id, user_id, lesson_date),
+    ).fetchone()
+    if not row:
+        return None
+    return int(row["route_day"]), str(row["lesson_date"])
+
+
+def advance_content_route_day(user_id: str, route_day: int, anchor_date: str | None, lesson_date: str) -> int:
+    elapsed_days = 1
+    if anchor_date:
+        try:
+            elapsed_days = max(1, (date.fromisoformat(lesson_date) - date.fromisoformat(anchor_date)).days)
+        except ValueError:
+            elapsed_days = 1
+    return clamp_content_route_day(user_id, route_day + elapsed_days)
+
+
+def learning_status_content_route_anchor(status: dict[str, Any], lesson_date: str) -> tuple[int, str | None]:
+    try:
+        learning_days = int(status.get("learning_days") or 0)
+    except (TypeError, ValueError):
+        learning_days = 0
+    return learning_days, status.get("last_learning_date") or None
+
+
+def expected_next_content_route_day(
+    conn: sqlite3.Connection,
+    user_id: str,
+    lesson_date: str | None = None,
+) -> int:
+    lesson_date = lesson_date or today_iso()
+    anchor = latest_published_content_route_anchor(conn, user_id, lesson_date)
+    if anchor is None:
+        anchor = latest_completed_content_route_anchor(conn, user_id, lesson_date)
+    if anchor is not None:
+        return advance_content_route_day(user_id, anchor[0], anchor[1], lesson_date)
+
+    status = row_to_dict(conn.execute("SELECT * FROM learning_status WHERE user_id = ?", (user_id,)).fetchone()) or {}
+    learning_days, last_learning_date = learning_status_content_route_anchor(status, lesson_date)
+    return advance_content_route_day(user_id, learning_days, last_learning_date, lesson_date)
+
+
 def pick_content_route_item(context: dict[str, Any]) -> dict[str, Any]:
     route_data = route_data_for_user(context.get("user_id"))
     route_items = route_data.get("route_items") or []
     if not route_items:
         return {}
     status = context.get("status") or {}
-    try:
-        learning_days = int(status.get("learning_days") or 0)
-    except (TypeError, ValueError):
-        learning_days = 0
+    completed_route_day = completed_content_route_day_from_context(context)
+    if completed_route_day is None:
+        try:
+            completed_route_day = int(status.get("learning_days") or 0)
+        except (TypeError, ValueError):
+            completed_route_day = 0
     try:
         route_index_offset = int(context.get("content_route_index_offset") or 0)
     except (TypeError, ValueError):
         route_index_offset = 0
-    index = max(0, min(learning_days + max(0, route_index_offset), len(route_items) - 1))
+    index = max(0, min(completed_route_day + max(0, route_index_offset), len(route_items) - 1))
     item = dict(route_items[index])
     item["daily_constraints"] = route_data.get("daily_constraints") or {}
     item["stage"] = route_data.get("stage") or {}
@@ -308,6 +459,102 @@ def dedupe_words(words: list[str]) -> list[str]:
     return result
 
 
+def stable_seed(*parts: Any) -> int:
+    text = ":".join(str(part) for part in parts if part is not None)
+    return int(hashlib.sha256(text.encode("utf-8")).hexdigest()[:16], 16)
+
+
+def normalize_quiz_options(options: Any, answer: str) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for option in options or []:
+        cleaned = str(option).strip()
+        key = cleaned.casefold()
+        if not cleaned or key in seen:
+            continue
+        seen.add(key)
+        result.append(cleaned)
+    answer_text = answer.strip()
+    if answer_text:
+        answer_key = answer_text.casefold()
+        for index, option in enumerate(result):
+            if option.casefold() == answer_key:
+                result[index] = answer_text
+                break
+        else:
+            result.append(answer_text)
+    return result
+
+
+def next_answer_position(
+    position_cycles: dict[int, list[int]],
+    option_count: int,
+    rng: random.Random,
+) -> int:
+    cycle = position_cycles.get(option_count)
+    if not cycle:
+        cycle = list(range(option_count))
+        rng.shuffle(cycle)
+        position_cycles[option_count] = cycle
+    return cycle.pop(0)
+
+
+def randomize_quiz_options(lesson_json: dict[str, Any]) -> None:
+    quiz = lesson_json.get("quiz") or {}
+    questions = quiz.get("questions") or []
+    if not isinstance(questions, list):
+        return
+
+    seed_base = stable_seed(
+        lesson_json.get("user_id"),
+        lesson_json.get("lesson_date"),
+        lesson_json.get("lesson_asset_id"),
+        lesson_json.get("source_generation_run_id"),
+    )
+    rng = random.Random(seed_base)
+    position_cycles: dict[int, list[int]] = {}
+    randomized_questions: list[dict[str, Any]] = []
+    for index, question in enumerate(questions):
+        if not isinstance(question, dict):
+            continue
+        answer = str(question.get("answer") or "").strip()
+        options = normalize_quiz_options(question.get("options"), answer)
+        if not answer or len(options) < 2:
+            question["options"] = options
+            continue
+
+        distractors = sorted(
+            [option for option in options if option != answer],
+            key=lambda option: option.casefold(),
+        )
+        if not distractors:
+            question["options"] = options
+            continue
+
+        question_rng = random.Random(
+            stable_seed(seed_base, question.get("question_id"), question.get("prompt"), index)
+        )
+        question_rng.shuffle(distractors)
+        target_position = next_answer_position(position_cycles, len(distractors) + 1, rng)
+        shuffled_options = distractors
+        shuffled_options.insert(min(target_position, len(shuffled_options)), answer)
+        question["options"] = shuffled_options
+        randomized_questions.append(question)
+
+    positions = [
+        question["options"].index(str(question.get("answer") or "").strip())
+        for question in randomized_questions
+        if str(question.get("answer") or "").strip() in question.get("options", [])
+    ]
+    if len(positions) > 1 and len(set(positions)) == 1:
+        question = randomized_questions[1]
+        answer = str(question.get("answer") or "").strip()
+        options = [option for option in question["options"] if option != answer]
+        target_position = 1 if positions[0] == 0 else 0
+        options.insert(min(target_position, len(options)), answer)
+        question["options"] = options
+
+
 def pick_review_words(context: dict[str, Any], max_items: int = 3) -> list[str]:
     words: list[str] = []
     for item in context.get("review_queue", []):
@@ -332,6 +579,245 @@ def pick_review_words(context: dict[str, Any], max_items: int = 3) -> list[str]:
     if not selected and offset == 0:
         selected = unique_words[:max_items]
     return selected[:max_items]
+
+
+def normalize_review_payload(row: sqlite3.Row) -> dict[str, Any]:
+    item = dict(row)
+    review_json = safe_json_loads(item.get("review_json"), {})
+    if isinstance(review_json, dict):
+        item["quiz_score"] = review_json.get("quiz_score")
+        item["self_rating"] = review_json.get("self_rating")
+        item["weak_words"] = review_json.get("weak_words") or []
+        item["difficulty_points"] = review_json.get("difficulty_points") or []
+        item["incorrect_answers"] = review_json.get("incorrect_answers") or []
+    else:
+        item["quiz_score"] = None
+        item["self_rating"] = None
+        item["weak_words"] = []
+        item["difficulty_points"] = []
+        item["incorrect_answers"] = []
+    item.pop("review_json", None)
+    return item
+
+
+def build_difficulty_pressure(
+    context: dict[str, Any],
+    content_route_item: dict[str, Any],
+) -> dict[str, Any]:
+    explicit_level = str(content_route_item.get("pressure_level") or "").strip().lower()
+    recent_reviews = [item for item in context.get("recent_reviews", []) if isinstance(item, dict)]
+    easy_like = {"轻松", "太轻松", "简单", "easy"}
+    last_three = recent_reviews[:3]
+    easy_wins = 0
+    perfect_wins = 0
+    for review in last_three:
+        try:
+            score = float(review.get("quiz_score") or 0)
+        except (TypeError, ValueError):
+            score = 0
+        weak_words = review.get("weak_words") or []
+        difficulty_points = review.get("difficulty_points") or []
+        incorrect_answers = review.get("incorrect_answers") or []
+        if score >= 0.95:
+            perfect_wins += 1
+        if (
+            score >= 0.95
+            and str(review.get("self_rating") or "") in easy_like
+            and not weak_words
+            and not difficulty_points
+            and not incorrect_answers
+        ):
+            easy_wins += 1
+
+    status = context.get("status") or {}
+    try:
+        learning_days = int(status.get("learning_days") or 0)
+    except (TypeError, ValueError):
+        learning_days = 0
+
+    if explicit_level in {"challenge", "push", "steady"}:
+        level = explicit_level
+    elif learning_days >= 5 and easy_wins >= 2:
+        level = "challenge"
+    elif learning_days >= 3 and perfect_wins >= 2:
+        level = "push"
+    else:
+        level = "steady"
+
+    if level == "challenge":
+        target_vocabulary_count = 9
+        min_quiz_count = 7
+        review_word_limit = 3
+        passage_line_min = 8
+    elif level == "push":
+        target_vocabulary_count = 7
+        min_quiz_count = 6
+        review_word_limit = 3
+        passage_line_min = 6
+    else:
+        target_vocabulary_count = 6
+        min_quiz_count = 5
+        review_word_limit = 2
+        passage_line_min = 4
+
+    return {
+        "level": level,
+        "target_vocabulary_count": target_vocabulary_count,
+        "min_quiz_count": min_quiz_count,
+        "review_word_limit": review_word_limit,
+        "passage_line_min": passage_line_min,
+        "recent_easy_wins": easy_wins,
+        "recent_perfect_wins": perfect_wins,
+        "rationale": "连续轻松高分，自动加压" if level in {"push", "challenge"} else "按常规强度推进",
+    }
+
+
+def append_vocabulary_word(
+    vocabulary: list[dict[str, Any]],
+    existing_words: set[str],
+    word: str,
+    phonics_focus: list[str],
+    *,
+    learning_role: str = "new",
+) -> bool:
+    cleaned = str(word).strip()
+    key = cleaned.lower()
+    if not cleaned or key in existing_words:
+        return False
+    item = build_vocabulary_item(cleaned, phonics_focus)
+    if learning_role != "new":
+        item["learning_role"] = learning_role
+        item["is_review"] = learning_role == "review"
+    if learning_role == "challenge":
+        item["is_challenge"] = True
+        item["cefr_level"] = "a1"
+    vocabulary.append(item)
+    existing_words.add(key)
+    return True
+
+
+def build_challenge_quiz_questions(
+    content_route_item: dict[str, Any],
+    vocabulary: list[dict[str, Any]],
+    pressure: dict[str, Any],
+    existing_count: int,
+) -> list[dict[str, Any]]:
+    if pressure.get("level") == "steady":
+        return []
+
+    route_item_id = str(content_route_item.get("route_item_id") or "route_item")
+    phonics_focus = [str(item) for item in content_route_item.get("phonics_focus") or []]
+    sentence_patterns = [str(item) for item in content_route_item.get("sentence_patterns") or [] if str(item).strip()]
+    words = [str(item.get("word") or "") for item in vocabulary if item.get("word")]
+    first_word = words[0] if words else "see"
+    second_word = words[1] if len(words) > 1 else first_word
+    third_word = words[2] if len(words) > 2 else second_word
+    minimal_pairs = content_route_item.get("minimal_pairs") or []
+    minimal_group = []
+    for group in minimal_pairs:
+        if isinstance(group, list) and group:
+            minimal_group = [str(item) for item in group if str(item).strip()]
+            break
+    if not minimal_group:
+        minimal_group = dedupe_words([first_word, second_word, third_word])[:3]
+    if len(minimal_group) < 3:
+        minimal_group = dedupe_words(minimal_group + words)[:3]
+
+    questions: list[dict[str, Any]] = []
+    if minimal_group:
+        audio_word = minimal_group[0]
+        questions.append(
+            {
+                "question_id": f"{route_item_id}_pressure_q{existing_count + len(questions) + 1}",
+                "question_type": "sound_choice",
+                "prompt": "加压听辨：听音，选择你听到的词。",
+                "audio_text": audio_word,
+                "options": minimal_group,
+                "answer": audio_word,
+                "explanation": f"这是加压听辨题，重点听 {audio_word} 的完整发音。",
+                "related_word_ids": [f"word_{audio_word.lower()}"],
+                "checks": ["pressure", "pronunciation_discrimination"],
+                "error_tag": "pressure_sound_choice",
+            }
+        )
+
+    if sentence_patterns:
+        sentence = sentence_patterns[0]
+        distractors = [item for item in sentence_patterns[1:3] if item != sentence]
+        if len(distractors) < 2:
+            distractors.extend([
+                f"I can {first_word}.",
+                f"Please {second_word}.",
+            ])
+        questions.append(
+            {
+                "question_id": f"{route_item_id}_pressure_q{existing_count + len(questions) + 1}",
+                "question_type": "sentence_audio_choice",
+                "prompt": "加压听句：播放后选择你听到的整句话。",
+                "audio_text": sentence,
+                "options": dedupe_words([sentence] + distractors)[:3],
+                "answer": sentence,
+                "explanation": "不要只听关键词，要听完整句子顺序。",
+                "related_word_ids": [f"word_{word.lower()}" for word in words[:3]],
+                "checks": ["pressure", "sentence_listening"],
+                "error_tag": "pressure_sentence_listening",
+            }
+        )
+
+        tokens = sentence.rstrip(".?!").split()
+        if len(tokens) >= 3:
+            scrambled = " / ".join(reversed(tokens))
+            wrong_one = " ".join(tokens[:-1])
+            wrong_two = " ".join(tokens[1:] + tokens[:1])
+            questions.append(
+                {
+                    "question_id": f"{route_item_id}_pressure_q{existing_count + len(questions) + 1}",
+                    "question_type": "sentence_order",
+                    "prompt": f"加压排序：把 {scrambled} 排成正确句子。",
+                    "options": [sentence, wrong_one, wrong_two],
+                    "answer": sentence,
+                    "explanation": "加压题要从词义进入句子顺序。",
+                    "related_word_ids": [f"word_{word.lower()}" for word in words[:3]],
+                    "checks": ["pressure", "sentence_order"],
+                    "error_tag": "pressure_sentence_order",
+                }
+            )
+
+    scenario = content_route_item.get("scenario_task") or {}
+    if isinstance(scenario, dict) and scenario.get("prompt") and scenario.get("answer"):
+        questions.append(
+            {
+                "question_id": f"{route_item_id}_pressure_q{existing_count + len(questions) + 1}",
+                "question_type": "scenario_choice",
+                "prompt": str(scenario["prompt"]),
+                "options": [str(item) for item in scenario.get("options") or []],
+                "answer": str(scenario["answer"]),
+                "explanation": str(scenario.get("explanation") or "真实场景里优先选择自然、礼貌、能推进沟通的表达。"),
+                "related_word_ids": [f"word_{word.lower()}" for word in words[:4]],
+                "checks": ["pressure", "communicative_choice"],
+                "error_tag": "pressure_scenario_response",
+            }
+        )
+    elif phonics_focus:
+        questions.append(
+            {
+                "question_id": f"{route_item_id}_pressure_q{existing_count + len(questions) + 1}",
+                "question_type": "contrast_choice",
+                "prompt": f"加压判断：今天的发音重点是 {', '.join(phonics_focus)}，哪组最需要反复听辨？",
+                "options": [
+                    "音近词和短句中的声音差别",
+                    "只看中文意思",
+                    "跳过听力直接做题",
+                ],
+                "answer": "音近词和短句中的声音差别",
+                "explanation": "现在正确率很高，下一步要把发音差别放进短句里听。",
+                "related_word_ids": [f"word_{word.lower()}" for word in words[:3]],
+                "checks": ["pressure", "learning_strategy"],
+                "error_tag": "pressure_strategy",
+            }
+        )
+
+    return questions
 
 
 def build_audio_asset(
@@ -495,7 +981,10 @@ def build_kb_route_template(
     content_route_item: dict[str, Any],
     review_text: str,
     scheduled_review_words: list[str] | None = None,
+    context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    context = context or {}
+    pressure = build_difficulty_pressure(context, content_route_item)
     phonics_focus = [str(item) for item in content_route_item.get("phonics_focus") or []]
     route_review_words = [str(item) for item in content_route_item.get("review_words") or []]
     scheduled_review_words = scheduled_review_words or []
@@ -511,7 +1000,18 @@ def build_kb_route_template(
             not has_new_words and word_key in route_review_word_keys
         ):
             mark_review_vocabulary_item(item, "mixed_review")
-    extra_review_limit = max(0, 6 - len(vocabulary))
+    if pressure["level"] in {"push", "challenge"}:
+        for word in [str(item) for item in content_route_item.get("challenge_words") or []]:
+            if len(vocabulary) >= pressure["target_vocabulary_count"]:
+                break
+            append_vocabulary_word(vocabulary, existing_words, word, phonics_focus, learning_role="challenge")
+    extra_review_limit = max(
+        0,
+        min(
+            pressure["review_word_limit"],
+            pressure["target_vocabulary_count"] - len(vocabulary),
+        ),
+    )
     for word in review_words:
         if extra_review_limit <= 0:
             break
@@ -547,6 +1047,10 @@ def build_kb_route_template(
     content_lines = [str(line) for line in content_route_item.get("knowledge_cards") or default_content_lines]
     if review_words and content_route_item.get("knowledge_cards"):
         content_lines.append(f"复习回顾：{', '.join(review_words[:4])} 是旧内容，看到“复习词”标记时先认读，再回到今天的新知识。")
+    if pressure["level"] in {"push", "challenge"}:
+        content_lines.append(
+            "加压任务：今天不能只认得单词，要完成音近词听辨、整句听力、句子排序和场景回应。目标正确率 70%-85%，有错题才说明难度开始有效。"
+        )
     quiz_words = vocabulary[:3] or [build_vocabulary_item("see", phonics_focus)]
     provided_questions = content_route_item.get("quiz_questions") or []
     questions = [
@@ -597,6 +1101,16 @@ def build_kb_route_template(
             "error_tag": "output_clarity" if not phonics_focus else "syllable_awareness",
         },
     ]
+    if len(questions) < pressure["min_quiz_count"]:
+        for question in build_challenge_quiz_questions(
+            content_route_item,
+            vocabulary,
+            pressure,
+            len(questions),
+        ):
+            if len(questions) >= pressure["min_quiz_count"]:
+                break
+            questions.append(question)
     for question in questions:
         audio_text = str(question.get("audio_text") or "")
         if audio_text and not question.get("audio_ref"):
@@ -637,6 +1151,7 @@ def build_kb_route_template(
             "content": "\n".join(content_lines),
         },
         "quiz": {"title": "今日小测试", "questions": questions},
+        "difficulty_profile": pressure,
         "progress_summary": {
             "route_module_label": route_label,
             "main_knowledge_label": str(content_route_item.get("main_knowledge_label") or focus_text),
@@ -1227,6 +1742,18 @@ def build_generation_context(conn: sqlite3.Connection, user_id: str) -> dict[str
             (user_id,),
         ).fetchall()
     )
+    recent_review_rows = conn.execute(
+        """
+        SELECT review_date, human_readable_summary, review_json, created_at
+        FROM learning_review_assets
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+        LIMIT 5
+        """,
+        (user_id,),
+    ).fetchall()
+    recent_reviews = [normalize_review_payload(row) for row in recent_review_rows]
+    completed_route_day = get_completed_content_route_day(conn, user_id)
     route_item_for_context = choose_next_route_item({"route": route})
     teaching_knowledge = get_teaching_knowledge_asset(
         conn,
@@ -1240,6 +1767,8 @@ def build_generation_context(conn: sqlite3.Connection, user_id: str) -> dict[str
         "review_queue": review_items,
         "recent_errors": recent_errors,
         "recent_difficulties": recent_difficulties,
+        "recent_reviews": recent_reviews,
+        "completed_content_route_day": completed_route_day,
         "teaching_knowledge": teaching_knowledge,
     }
 
@@ -1787,7 +2316,7 @@ def build_template_plan(
 
     content_route_item = pick_content_route_item(context)
     template = (
-        build_kb_route_template(content_route_item, review_text, review_words)
+        build_kb_route_template(content_route_item, review_text, review_words, context=context)
         if content_route_item
         else templates.get(route_id, templates["route_001"])
     )
@@ -1814,7 +2343,11 @@ def build_template_plan(
         "admin_note": admin["admin_note"],
         "admin_instruction": admin["admin_instruction"],
         "admin_revision_note": admin["admin_revision_note"],
-        "difficulty": content_route_item.get("difficulty") or "starter",
+        "difficulty": (
+            (template.get("difficulty_profile") or {}).get("level")
+            if (template.get("difficulty_profile") or {}).get("level") in {"push", "challenge"}
+            else content_route_item.get("difficulty") or "starter"
+        ),
         "estimated_minutes": estimated_minutes,
         "route_basis": {
             "current_stage": (context.get("status") or {}).get("current_stage"),
@@ -1833,6 +2366,7 @@ def build_template_plan(
             "main_knowledge_label": main_knowledge_label,
             "passage_module_label": passage_module_label,
             "source_basis": content_route_item.get("source_basis") or [],
+            "difficulty_profile": template.get("difficulty_profile") or {},
         },
         "asset_requirements": [
             {"type": "image", "target": item["word"], "required": True}
@@ -1857,11 +2391,15 @@ def generate_lesson_plan_json(
     lesson_date: str | None = None,
     admin_override: dict[str, Any] | None = None,
     route_day_offset: int = 0,
+    route_base_date: str | None = None,
 ) -> tuple[str, dict[str, Any]]:
     lesson_date = lesson_date or today_iso()
+    route_base_date = route_base_date or lesson_date
     start = time.perf_counter()
     with connect() as conn:
         context = build_generation_context(conn, user_id)
+        expected_route_day = expected_next_content_route_day(conn, user_id, route_base_date)
+        context["completed_content_route_day"] = max(0, expected_route_day - 1)
         try:
             route_offset = max(0, int(route_day_offset or 0))
         except (TypeError, ValueError):
@@ -1887,6 +2425,7 @@ def generate_lesson_plan_json(
             "review_queue": context.get("review_queue"),
             "recent_errors": context.get("recent_errors"),
             "recent_difficulties": context.get("recent_difficulties"),
+            "recent_reviews": context.get("recent_reviews"),
             "admin": admin,
         }
         conn.execute(
@@ -1947,6 +2486,7 @@ def normalize_lesson_plan(run_id: str, plan: dict[str, Any]) -> dict[str, Any]:
         "teaching_knowledge_id": plan.get("teaching_knowledge_id"),
         "source_basis": (plan.get("route_basis") or {}).get("source_basis", []),
     }
+    randomize_quiz_options(lesson_json)
     NORMALIZED_DIR.mkdir(parents=True, exist_ok=True)
     out_path = NORMALIZED_DIR / f"{lesson_asset_id}.json"
     out_path.write_text(json.dumps(lesson_json, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -2066,6 +2606,7 @@ def generate_lesson_draft_workspace(
     admin_id: str = "admin_xly",
     action: str = "generate_draft",
     route_day_offset: int = 0,
+    route_base_date: str | None = None,
 ) -> str:
     lesson_date = lesson_date or today_iso()
     admin_override = {
@@ -2073,7 +2614,13 @@ def generate_lesson_draft_workspace(
         "admin_instruction": admin_instruction,
         "admin_revision_note": None,
     }
-    run_id, plan = generate_lesson_plan_json(user_id, lesson_date, admin_override, route_day_offset=route_day_offset)
+    run_id, plan = generate_lesson_plan_json(
+        user_id,
+        lesson_date,
+        admin_override,
+        route_day_offset=route_day_offset,
+        route_base_date=route_base_date,
+    )
     lesson_json = normalize_lesson_plan(run_id, plan)
     if admin_note is not None:
         lesson_json["admin_note"] = admin_note or None
@@ -2092,6 +2639,7 @@ def generate_weekly_lesson_draft_workspaces(
 ) -> list[dict[str, str]]:
     init_db()
     start = date.fromisoformat(start_date or today_iso())
+    start_date_iso = start.isoformat()
     bounded_days = max(1, min(int(days or 7), 14))
     drafts: list[dict[str, str]] = []
     for offset in range(bounded_days):
@@ -2104,6 +2652,7 @@ def generate_weekly_lesson_draft_workspaces(
             admin_id=admin_id,
             action="admin_generate_weekly_draft",
             route_day_offset=offset,
+            route_base_date=start_date_iso,
         )
         drafts.append({"lesson_date": lesson_date, "draft_id": draft_id})
     return drafts
@@ -2680,11 +3229,17 @@ def generate_and_save_today(user_id: str = "user_mom", lesson_date: str | None =
     if existing:
         return existing
     draft = get_latest_lesson_draft(user_id, lesson_date)
-    if not draft:
+    should_regenerate = False
+    if draft:
+        with connect() as conn:
+            expected_route_day = expected_next_content_route_day(conn, user_id, lesson_date)
+        draft_route_day = extract_content_route_day(draft.get("draft_json"))
+        should_regenerate = draft_route_day is not None and draft_route_day != expected_route_day
+    if not draft or should_regenerate:
         draft_id = generate_lesson_draft_workspace(
             user_id,
             lesson_date,
-            action="auto_generate_before_publish",
+            action="auto_regenerate_stale_draft" if should_regenerate else "auto_generate_before_publish",
         )
     else:
         draft_id = draft["draft_id"]
@@ -2732,6 +3287,7 @@ def get_published_lesson_from_versions(
         return None
     lesson = safe_json_loads(row["lesson_json"], None)
     if lesson:
+        randomize_quiz_options(lesson)
         ensure_lesson_runtime_assets(conn, lesson)
     return lesson
 
@@ -2751,6 +3307,7 @@ def get_today_lesson(user_id: str = "user_mom", lesson_date: str | None = None) 
         ).fetchone()
         if row:
             lesson = json.loads(row["lesson_json"])
+            randomize_quiz_options(lesson)
             ensure_lesson_runtime_assets(conn, lesson)
             conn.commit()
             return lesson
@@ -2765,6 +3322,7 @@ def get_today_lesson(user_id: str = "user_mom", lesson_date: str | None = None) 
             (lesson_asset_id,),
         ).fetchone()
         lesson = json.loads(row["lesson_json"])
+        randomize_quiz_options(lesson)
         ensure_lesson_runtime_assets(conn, lesson)
         conn.commit()
         return lesson

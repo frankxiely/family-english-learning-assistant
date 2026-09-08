@@ -50,6 +50,19 @@ npm run dev
 
 ## 公开网页访问
 
+当前腾讯云试运行入口：
+
+- 页面：`http://175.24.179.41/`
+- API 健康检查：`http://175.24.179.41/api/health`
+- 当前仍是 IP + HTTP 访问；绑定域名、完成备案并配置 HTTPS 后，再切换到正式域名。
+- 腾讯云版本更新流程见 `docs/engineering/tencent_deploy.md`，服务器端半自动发布脚本为 `scripts/deploy_tencent.sh`。
+
+当前公网入口：
+
+- 前端页面：`https://frankxiely.github.io/family-english-learning-assistant/`
+- 当前 API tunnel：`https://wyoming-networks-spears-grade.trycloudflare.com`
+- Cloudflare Quick Tunnel 是临时地址，重启后可能变化；地址变化后需要更新 GitHub 仓库变量并重新部署 Pages。
+
 当前免费公开试用采用“GitHub Pages 前端 + Cloudflare Quick Tunnel + 本机 FastAPI + 本机 SQLite”：
 
 - GitHub Pages 发布 `apps/web` 静态网页。
@@ -146,7 +159,7 @@ scripts/debug_modules.sh
 本地管理员账号：
 
 - 登录账号：`admin_xly`
-- 密码：`Admin1229`
+- 密码：`Frank1229`
 - 测试管理员登录账号：`AdminXLY`
 - 测试管理员用户名/展示名：`Admin_1`
 - 测试管理员密码：`Frank1229`

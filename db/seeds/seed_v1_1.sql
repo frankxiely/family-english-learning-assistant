@@ -22,7 +22,7 @@ INSERT OR IGNORE INTO local_login_accounts (
   'admin_xly',
   NULL,
   'admin',
-  'dbee4affba20964d8700d6aa66c1c8356c7b08ed2b2852744318474d8e0148f7',
+  '84d1f39e22ed5d1dda6a3d87029f32a6671f6d40b33f3f3ab255c04fdbe8aa92',
   1,
   'active'
 );

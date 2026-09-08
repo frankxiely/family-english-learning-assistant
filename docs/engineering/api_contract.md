@@ -26,7 +26,7 @@
 当前本地管理员账号：
 
 - 登录账号：`admin_xly`
-- `Admin1229`
+- `Frank1229`
 
 ## Learning
 

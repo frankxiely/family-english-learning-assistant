@@ -12,6 +12,7 @@ data/lesson_exports/*.md
 *.egg-info/
 __pycache__/
 *.pyc
+*.pem
 data/sqlite/*.db
 data/sqlite/*.db-*
 data/sqlite/backups/*.db
